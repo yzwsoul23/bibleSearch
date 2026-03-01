@@ -187,6 +187,7 @@ function handleSpaceInput(value) {
             const chapterValue = parseInt(input.value.replace(currentBook.name, '').trim());
             if (!isNaN(chapterValue)) {
                 currentChapter = chapterValue;
+                // 移除空格后添加冒号
                 input.value = currentBook.name + chapterValue + ':';
                 inputState = 'verse';
                 return true;
@@ -195,7 +196,8 @@ function handleSpaceInput(value) {
             const verseValue = parseInt(input.value.split(':')[1].trim());
             if (!isNaN(verseValue)) {
                 currentStartVerse = verseValue;
-                input.value = input.value + '-';
+                // 移除空格后添加横线
+                input.value = currentBook.name + currentChapter + ':' + verseValue + '-';
                 inputState = 'endVerse';
                 return true;
             }
