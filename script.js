@@ -81,6 +81,7 @@ let currentChapter = null;
 let currentStartVerse = null;
 let currentEndVerse = null;
 let inputState = 'book';
+let previousValue = '';
 
 // 按需加载经卷数据
 async function loadBook(bookName) {
@@ -94,6 +95,7 @@ async function loadBook(bookName) {
             const data = await response.json();
             bibleData[bookName] = data.chapters;
             loadedBooks[bookName] = true;
+            console.log(`已加载: ${bookName}`);
             return true;
         }
     } catch (error) {
@@ -112,6 +114,10 @@ function showSuggestions(matchedBooks) {
         item.addEventListener('click', function() {
             selectBook(book);
         });
+        item.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            selectBook(book);
+        });
         suggestions.appendChild(item);
     });
     suggestions.style.display = 'block';
@@ -124,6 +130,8 @@ function selectBook(book) {
     inputState = 'chapter';
     suggestions.style.display = 'none';
     input.focus();
+    // 选择经卷后立即加载
+    loadBook(book.name);
 }
 
 // 显示经文
@@ -161,10 +169,53 @@ async function displayVerse(bookName, chapter, startVerse, endVerse) {
     }
 }
 
+// 处理空格输入
+function handleSpaceInput(value) {
+    const upperValue = value.toUpperCase();
+    
+    // 检测到空格输入
+    if (value.includes(' ') && !previousValue.includes(' ')) {
+        if (inputState === 'book' && suggestions.style.display === 'block') {
+            const firstSuggestion = suggestions.querySelector('.suggestion-item');
+            if (firstSuggestion) {
+                const bookName = firstSuggestion.textContent;
+                currentBook = books.find(b => b.name === bookName);
+                selectBook(currentBook);
+                return true;
+            }
+        } else if (inputState === 'chapter') {
+            const chapterValue = parseInt(input.value.replace(currentBook.name, '').trim());
+            if (!isNaN(chapterValue)) {
+                currentChapter = chapterValue;
+                input.value = currentBook.name + chapterValue + ':';
+                inputState = 'verse';
+                return true;
+            }
+        } else if (inputState === 'verse') {
+            const verseValue = parseInt(input.value.split(':')[1].trim());
+            if (!isNaN(verseValue)) {
+                currentStartVerse = verseValue;
+                input.value = input.value + '-';
+                inputState = 'endVerse';
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 // 输入处理
 function handleInput(e) {
     const value = e.target.value;
     const upperValue = value.toUpperCase();
+    
+    // 处理空格输入（兼容手机输入法）
+    if (handleSpaceInput(value)) {
+        previousValue = input.value;
+        return;
+    }
+    
+    previousValue = value;
     
     if (value.includes(':')) {
         if (value.includes('-')) {
@@ -197,7 +248,15 @@ function handleInput(e) {
     } else if (currentBook && value.startsWith(currentBook.name)) {
         inputState = 'chapter';
         const chapterPart = value.substring(currentBook.name.length).trim();
-        if (chapterPart && !isNaN(parseInt(chapterPart))) {
+        
+        // 检测章后输入z显示整章
+        if (chapterPart.toUpperCase().endsWith('Z')) {
+            const chapterValue = parseInt(chapterPart.substring(0, chapterPart.length - 1));
+            if (!isNaN(chapterValue)) {
+                currentChapter = chapterValue;
+                displayVerse(currentBook.name, currentChapter, 1, 'end');
+            }
+        } else if (chapterPart && !isNaN(parseInt(chapterPart))) {
             currentChapter = parseInt(chapterPart);
         }
     }
@@ -233,6 +292,7 @@ function handleKeydown(e) {
             displayVerse(currentBook.name, currentChapter, currentStartVerse, currentEndVerse);
         }
     } else if (e.key === ' ') {
+        // 电脑端空格键处理
         if (inputState === 'book' && suggestions.style.display === 'block') {
             const firstSuggestion = suggestions.querySelector('.suggestion-item');
             if (firstSuggestion) {
@@ -288,4 +348,11 @@ document.addEventListener('DOMContentLoaded', function() {
     input.addEventListener('input', handleInput);
     input.addEventListener('keydown', handleKeydown);
     document.addEventListener('click', handleClickOutside);
+    
+    // 移动端触摸事件
+    document.addEventListener('touchend', function(e) {
+        if (!input.contains(e.target) && !suggestions.contains(e.target)) {
+            suggestions.style.display = 'none';
+        }
+    });
 });
