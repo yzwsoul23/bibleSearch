@@ -148,8 +148,8 @@ function parseVoiceInput(text) {
     let startVerse = null;
     let endVerse = null;
     
-    // 匹配范围：1~3节、1到3节、1-3节、一到三节
-    const rangeMatch = text.match(/^(\d+|[零一二三四五六七八九十百千]+)[~\-到]+(\d+|[零一二三四五六七八九十百千]+)节?$/);
+    // 匹配范围：1节到12节、1~3节、1到3节、1-3节、一到三节
+    const rangeMatch = text.match(/^(\d+|[零一二三四五六七八九十百千]+)节?[~\-到]+(\d+|[零一二三四五六七八九十百千]+)节?$/);
     if (rangeMatch) {
         startVerse = chineseToNumber(rangeMatch[1]);
         endVerse = chineseToNumber(rangeMatch[2]);
@@ -170,6 +170,31 @@ function parseVoiceInput(text) {
         startVerse: startVerse,
         endVerse: endVerse || startVerse
     };
+}
+
+// 检查是否是完整的语音输入
+function isCompleteVoiceInput(text) {
+    // 移除标点符号
+    const cleanText = text.replace(/[。！？，、；：""''（）【】《》\s]/g, '');
+    
+    // 检查是否包含经卷名
+    let hasBook = false;
+    for (const book of books) {
+        if (cleanText.includes(book.name)) {
+            hasBook = true;
+            break;
+        }
+    }
+    
+    if (!hasBook) return false;
+    
+    // 检查是否包含章
+    if (!cleanText.match(/[章]/)) return false;
+    
+    // 检查是否包含节或数字范围
+    if (!cleanText.match(/[节~\-到]/) && !cleanText.match(/\d+/)) return false;
+    
+    return true;
 }
 
 // DOM 元素
@@ -311,27 +336,29 @@ function handleInput(e) {
     const value = e.target.value;
     const upperValue = value.toUpperCase();
     
-    // 尝试解析语音输入
-    const voiceResult = parseVoiceInput(value);
-    if (voiceResult) {
-        currentBook = books.find(b => b.name === voiceResult.bookName);
-        currentChapter = voiceResult.chapter;
-        currentStartVerse = voiceResult.startVerse;
-        currentEndVerse = voiceResult.endVerse;
-        
-        // 更新输入框显示
-        if (voiceResult.startVerse === voiceResult.endVerse) {
-            input.value = voiceResult.bookName + voiceResult.chapter + ':' + voiceResult.startVerse;
-            inputState = 'verse';
-        } else {
-            input.value = voiceResult.bookName + voiceResult.chapter + ':' + voiceResult.startVerse + '-' + voiceResult.endVerse;
-            inputState = 'endVerse';
+    // 检查是否是完整的语音输入（只在完整时才解析）
+    if (isCompleteVoiceInput(value)) {
+        const voiceResult = parseVoiceInput(value);
+        if (voiceResult) {
+            currentBook = books.find(b => b.name === voiceResult.bookName);
+            currentChapter = voiceResult.chapter;
+            currentStartVerse = voiceResult.startVerse;
+            currentEndVerse = voiceResult.endVerse;
+            
+            // 更新输入框显示
+            if (voiceResult.startVerse === voiceResult.endVerse) {
+                input.value = voiceResult.bookName + voiceResult.chapter + ':' + voiceResult.startVerse;
+                inputState = 'verse';
+            } else {
+                input.value = voiceResult.bookName + voiceResult.chapter + ':' + voiceResult.startVerse + '-' + voiceResult.endVerse;
+                inputState = 'endVerse';
+            }
+            
+            // 显示经文
+            displayVerse(voiceResult.bookName, voiceResult.chapter, voiceResult.startVerse, voiceResult.endVerse);
+            suggestions.style.display = 'none';
+            return;
         }
-        
-        // 显示经文
-        displayVerse(voiceResult.bookName, voiceResult.chapter, voiceResult.startVerse, voiceResult.endVerse);
-        suggestions.style.display = 'none';
-        return;
     }
     
     // 处理空格输入（兼容手机输入法）
