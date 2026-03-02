@@ -8,13 +8,117 @@
 </head>
 <body>
     <div class="container">
-        <h1>查经软件</h1>
+        <div class="header">
+            <h1>查经软件</h1>
+            <button class="help-btn" id="help-btn">i</button>
+        </div>
         <div class="input-section">
             <input type="text" id="bible-input" placeholder="输入缩写，例如：MT 5 3 12(马太福音5:3-12)" autocomplete="off">
             <div class="suggestions" id="suggestions"></div>
         </div>
         <div class="result" id="result"></div>
     </div>
+    
+    <div class="modal" id="help-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>使用说明</h2>
+                <span class="close-btn" id="close-btn">&times;</span>
+            </div>
+            <div class="modal-body">
+                <h3>输入方法</h3>
+                <ul>
+                    <li><strong>选择经卷</strong>：输入经卷缩写（如MT），按空格选择</li>
+                    <li><strong>输入章节</strong>：输入章号，按空格自动加冒号</li>
+                    <li><strong>单节经文</strong>：输入节号，按回车查看</li>
+                    <li><strong>范围经文</strong>：输入首节，按空格加横线，输入末节，按回车查看</li>
+                    <li><strong>整章经文</strong>：输入章号后加z（如：MT 5z）</li>
+                </ul>
+                
+                <h3>示例</h3>
+                <ul>
+                    <li><code>MT 5 3</code> → 马太福音5:3</li>
+                    <li><code>MT 5 3 12</code> → 马太福音5:3-12</li>
+                    <li><code>MT 5z</code> → 马太福音第5章全文</li>
+                </ul>
+                
+                <h3>旧约经卷缩写</h3>
+                <div class="book-list">
+                    <div class="book-item"><span class="code">CSJ</span><span class="name">创世纪</span></div>
+                    <div class="book-item"><span class="code">CAJ</span><span class="name">出埃及记</span></div>
+                    <div class="book-item"><span class="code">LWJ</span><span class="name">利未记</span></div>
+                    <div class="book-item"><span class="code">MSJ</span><span class="name">民数记</span></div>
+                    <div class="book-item"><span class="code">SMJ</span><span class="name">申命记</span></div>
+                    <div class="book-item"><span class="code">YS</span><span class="name">约书亚书</span></div>
+                    <div class="book-item"><span class="code">SSJ</span><span class="name">士师记</span></div>
+                    <div class="book-item"><span class="code">LDJ</span><span class="name">路得记</span></div>
+                    <div class="book-item"><span class="code">SMS</span><span class="name">撒母耳记上</span></div>
+                    <div class="book-item"><span class="code">SMX</span><span class="name">撒母耳记下</span></div>
+                    <div class="book-item"><span class="code">LWS</span><span class="name">列王纪上</span></div>
+                    <div class="book-item"><span class="code">LWX</span><span class="name">列王纪下</span></div>
+                    <div class="book-item"><span class="code">LDS</span><span class="name">历代志上</span></div>
+                    <div class="book-item"><span class="code">LDX</span><span class="name">历代志下</span></div>
+                    <div class="book-item"><span class="code">YSL</span><span class="name">以斯拉记</span></div>
+                    <div class="book-item"><span class="code">NXM</span><span class="name">尼希米记</span></div>
+                    <div class="book-item"><span class="code">YST</span><span class="name">以斯帖记</span></div>
+                    <div class="book-item"><span class="code">YBJ</span><span class="name">约伯记</span></div>
+                    <div class="book-item"><span class="code">SP</span><span class="name">诗篇</span></div>
+                    <div class="book-item"><span class="code">ZY</span><span class="name">箴言</span></div>
+                    <div class="book-item"><span class="code">CDS</span><span class="name">传道书</span></div>
+                    <div class="book-item"><span class="code">YG</span><span class="name">雅歌</span></div>
+                    <div class="book-item"><span class="code">YSY</span><span class="name">以赛亚书</span></div>
+                    <div class="book-item"><span class="code">YLM</span><span class="name">耶利米书</span></div>
+                    <div class="book-item"><span class="code">YAG</span><span class="name">耶利米哀歌</span></div>
+                    <div class="book-item"><span class="code">YXJ</span><span class="name">以西结书</span></div>
+                    <div class="book-item"><span class="code">DYL</span><span class="name">但以理书</span></div>
+                    <div class="book-item"><span class="code">HXA</span><span class="name">何西阿书</span></div>
+                    <div class="book-item"><span class="code">YES</span><span class="name">约珥书</span></div>
+                    <div class="book-item"><span class="code">AMS</span><span class="name">阿摩司书</span></div>
+                    <div class="book-item"><span class="code">EBD</span><span class="name">俄巴底亚书</span></div>
+                    <div class="book-item"><span class="code">YNS</span><span class="name">约拿书</span></div>
+                    <div class="book-item"><span class="code">MJS</span><span class="name">弥迦书</span></div>
+                    <div class="book-item"><span class="code">NHS</span><span class="name">那鸿书</span></div>
+                    <div class="book-item"><span class="code">HBG</span><span class="name">哈巴谷书</span></div>
+                    <div class="book-item"><span class="code">XFY</span><span class="name">西番雅书</span></div>
+                    <div class="book-item"><span class="code">HGS</span><span class="name">哈该书</span></div>
+                    <div class="book-item"><span class="code">SJL</span><span class="name">撒迦利亚书</span></div>
+                    <div class="book-item"><span class="code">MLJ</span><span class="name">玛拉基书</span></div>
+                </div>
+                
+                <h3>新约经卷缩写</h3>
+                <div class="book-list">
+                    <div class="book-item"><span class="code">MT</span><span class="name">马太福音</span></div>
+                    <div class="book-item"><span class="code">MK</span><span class="name">马可福音</span></div>
+                    <div class="book-item"><span class="code">LJ</span><span class="name">路加福音</span></div>
+                    <div class="book-item"><span class="code">YH</span><span class="name">约翰福音</span></div>
+                    <div class="book-item"><span class="code">ST</span><span class="name">使徒行传</span></div>
+                    <div class="book-item"><span class="code">LM</span><span class="name">罗马书</span></div>
+                    <div class="book-item"><span class="code">GLQ</span><span class="name">哥林多前书</span></div>
+                    <div class="book-item"><span class="code">GLH</span><span class="name">哥林多后书</span></div>
+                    <div class="book-item"><span class="code">JLT</span><span class="name">加拉太书</span></div>
+                    <div class="book-item"><span class="code">YFS</span><span class="name">以弗所书</span></div>
+                    <div class="book-item"><span class="code">FLB</span><span class="name">腓立比书</span></div>
+                    <div class="book-item"><span class="code">GLX</span><span class="name">歌罗西书</span></div>
+                    <div class="book-item"><span class="code">TSQ</span><span class="name">帖撒罗尼迦前书</span></div>
+                    <div class="book-item"><span class="code">TSH</span><span class="name">帖撒罗尼迦后书</span></div>
+                    <div class="book-item"><span class="code">TMQ</span><span class="name">提摩太前书</span></div>
+                    <div class="book-item"><span class="code">TMH</span><span class="name">提摩太后书</span></div>
+                    <div class="book-item"><span class="code">TDS</span><span class="name">提多书</span></div>
+                    <div class="book-item"><span class="code">FLM</span><span class="name">腓利门书</span></div>
+                    <div class="book-item"><span class="code">XBL</span><span class="name">希伯来书</span></div>
+                    <div class="book-item"><span class="code">YGS</span><span class="name">雅各书</span></div>
+                    <div class="book-item"><span class="code">BDQ</span><span class="name">彼得前书</span></div>
+                    <div class="book-item"><span class="code">BDH</span><span class="name">彼得后书</span></div>
+                    <div class="book-item"><span class="code">YHY</span><span class="name">约翰一书</span></div>
+                    <div class="book-item"><span class="code">YHE</span><span class="name">约翰二书</span></div>
+                    <div class="book-item"><span class="code">YHS</span><span class="name">约翰三书</span></div>
+                    <div class="book-item"><span class="code">YDS</span><span class="name">犹大书</span></div>
+                    <div class="book-item"><span class="code">QSL</span><span class="name">启示录</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <script src="script.js"></script>
 </body>
 </html>

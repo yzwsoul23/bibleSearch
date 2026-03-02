@@ -347,6 +347,10 @@ document.addEventListener('DOMContentLoaded', function() {
     suggestions = document.getElementById('suggestions');
     result = document.getElementById('result');
     
+    const helpBtn = document.getElementById('help-btn');
+    const helpModal = document.getElementById('help-modal');
+    const closeBtn = document.getElementById('close-btn');
+    
     input.addEventListener('input', handleInput);
     input.addEventListener('keydown', handleKeydown);
     document.addEventListener('click', handleClickOutside);
@@ -355,6 +359,30 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('touchend', function(e) {
         if (!input.contains(e.target) && !suggestions.contains(e.target)) {
             suggestions.style.display = 'none';
+        }
+    });
+    
+    // 帮助按钮点击事件
+    helpBtn.addEventListener('click', function() {
+        helpModal.style.display = 'block';
+    });
+    
+    // 关闭按钮点击事件
+    closeBtn.addEventListener('click', function() {
+        helpModal.style.display = 'none';
+    });
+    
+    // 点击模态框外部关闭
+    helpModal.addEventListener('click', function(e) {
+        if (e.target === helpModal) {
+            helpModal.style.display = 'none';
+        }
+    });
+    
+    // ESC键关闭模态框
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && helpModal.style.display === 'block') {
+            helpModal.style.display = 'none';
         }
     });
 });
