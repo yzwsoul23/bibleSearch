@@ -316,12 +316,18 @@ async function displayVerse(bookName, chapter, startVerse, endVerse) {
         }
         
         // 添加多层透字效果
+        const offsets = [
+            { y: -32, x: -2 },  // 向上偏移一行，向左偏移2px
+            { y: 32, x: 2 },    // 向下偏移一行，向右偏移2px
+            { y: -16, x: 1 }    // 向上偏移半行，向右偏移1px
+        ];
+        
         for (let j = 0; j < 3; j++) {
             const ghostText = document.createElement('div');
             ghostText.className = 'ghost-text';
             ghostText.textContent = ghostContent;
-            ghostText.style.transform = `translateY(${15 + j * 20}px)`;
-            ghostText.style.opacity = 0.6 - j * 0.2;
+            ghostText.style.transform = `translate(${offsets[j].x}px, ${offsets[j].y}px)`;
+            ghostText.style.opacity = 1 - j * 0.3;
             result.insertBefore(ghostText, result.firstChild);
         }
     } else {
