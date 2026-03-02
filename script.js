@@ -5,7 +5,7 @@ const books = [
     { name: "利未记", short: "利", pinyin: "LWJ", fullPinyin: "liweiji" },
     { name: "民数记", short: "民", pinyin: "MSJ", fullPinyin: "minshuji" },
     { name: "申命记", short: "申", pinyin: "SMJ", fullPinyin: "shenmingji" },
-    { name: "约书亚书", short: "书", pinyin: "YS", fullPinyin: "yueshuya" },
+    { name: "约书亚记", short: "书", pinyin: "YS", fullPinyin: "yueshuya" },
     { name: "士师记", short: "士", pinyin: "SSJ", fullPinyin: "shishiji" },
     { name: "路得记", short: "路", pinyin: "LDJ", fullPinyin: "ludeji" },
     { name: "撒母耳记上", short: "撒上", pinyin: "SMS", fullPinyin: "sammuereishang" },
