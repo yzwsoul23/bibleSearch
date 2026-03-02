@@ -72,6 +72,106 @@ const books = [
 let bibleData = {};
 let loadedBooks = {};
 
+// 中文数字映射
+const chineseNumbers = {
+    '零': 0, '一': 1, '二': 2, '三': 3, '四': 4,
+    '五': 5, '六': 6, '七': 7, '八': 8, '九': 9,
+    '十': 10, '百': 100, '千': 1000
+};
+
+// 中文数字转阿拉伯数字
+function chineseToNumber(str) {
+    if (!str) return NaN;
+    
+    // 如果已经是数字，直接返回
+    if (!isNaN(parseInt(str))) {
+        return parseInt(str);
+    }
+    
+    // 中文数字转换
+    let result = 0;
+    let temp = 0;
+    
+    for (let i = 0; i < str.length; i++) {
+        const char = str[i];
+        const num = chineseNumbers[char];
+        
+        if (num === undefined) continue;
+        
+        if (num >= 10) {
+            // 单位：十、百、千
+            if (temp === 0) {
+                // 如果前面没有数字，单位当作1
+                temp = 1;
+            }
+            result += temp * num;
+            temp = 0;
+        } else {
+            // 数字：0-9
+            temp = num;
+        }
+    }
+    
+    // 加上最后的数字
+    result += temp;
+    return result > 0 ? result : NaN;
+}
+
+// 解析语音输入
+function parseVoiceInput(text) {
+    // 移除标点符号
+    text = text.replace(/[。！？，、；：""''（）【】《》\s]/g, '');
+    
+    // 匹配经卷名
+    let bookName = null;
+    for (const book of books) {
+        if (text.includes(book.name)) {
+            bookName = book.name;
+            text = text.substring(text.indexOf(book.name) + book.name.length);
+            break;
+        }
+    }
+    
+    if (!bookName) return null;
+    
+    // 匹配章号
+    let chapter = null;
+    const chapterMatch = text.match(/^(\d+|[零一二三四五六七八九十百千]+)章/);
+    if (chapterMatch) {
+        chapter = chineseToNumber(chapterMatch[1]);
+        text = text.substring(chapterMatch[0].length);
+    }
+    
+    if (!chapter) return null;
+    
+    // 匹配节号
+    let startVerse = null;
+    let endVerse = null;
+    
+    // 匹配范围：1~3节、1到3节、1-3节、一到三节
+    const rangeMatch = text.match(/^(\d+|[零一二三四五六七八九十百千]+)[~\-到]+(\d+|[零一二三四五六七八九十百千]+)节?$/);
+    if (rangeMatch) {
+        startVerse = chineseToNumber(rangeMatch[1]);
+        endVerse = chineseToNumber(rangeMatch[2]);
+    } else {
+        // 匹配单节：1节、一节
+        const verseMatch = text.match(/^(\d+|[零一二三四五六七八九十百千]+)节?$/);
+        if (verseMatch) {
+            startVerse = chineseToNumber(verseMatch[1]);
+            endVerse = startVerse;
+        }
+    }
+    
+    if (!startVerse) return null;
+    
+    return {
+        bookName: bookName,
+        chapter: chapter,
+        startVerse: startVerse,
+        endVerse: endVerse || startVerse
+    };
+}
+
 // DOM 元素
 let input, suggestions, result;
 
@@ -210,6 +310,29 @@ function handleSpaceInput(value) {
 function handleInput(e) {
     const value = e.target.value;
     const upperValue = value.toUpperCase();
+    
+    // 尝试解析语音输入
+    const voiceResult = parseVoiceInput(value);
+    if (voiceResult) {
+        currentBook = books.find(b => b.name === voiceResult.bookName);
+        currentChapter = voiceResult.chapter;
+        currentStartVerse = voiceResult.startVerse;
+        currentEndVerse = voiceResult.endVerse;
+        
+        // 更新输入框显示
+        if (voiceResult.startVerse === voiceResult.endVerse) {
+            input.value = voiceResult.bookName + voiceResult.chapter + ':' + voiceResult.startVerse;
+            inputState = 'verse';
+        } else {
+            input.value = voiceResult.bookName + voiceResult.chapter + ':' + voiceResult.startVerse + '-' + voiceResult.endVerse;
+            inputState = 'endVerse';
+        }
+        
+        // 显示经文
+        displayVerse(voiceResult.bookName, voiceResult.chapter, voiceResult.startVerse, voiceResult.endVerse);
+        suggestions.style.display = 'none';
+        return;
+    }
     
     // 处理空格输入（兼容手机输入法）
     if (handleSpaceInput(value)) {
