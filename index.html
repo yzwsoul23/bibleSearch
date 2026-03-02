@@ -10,13 +10,71 @@
     <div class="container">
         <div class="header">
             <h1>查经软件</h1>
-            <button class="help-btn" id="help-btn">i</button>
+            <div class="header-buttons">
+                <button class="theme-btn" id="theme-btn">🌙</button>
+                <button class="help-btn" id="help-btn">i</button>
+                <button class="setting-btn" id="setting-btn">⚙️</button>
+            </div>
         </div>
         <div class="input-section">
             <input type="text" id="bible-input" placeholder="输入缩写，例如：MT 5 3 12(马太福音5:3-12)" autocomplete="off">
             <div class="suggestions" id="suggestions"></div>
         </div>
-        <div class="result" id="result"></div>
+        <div class="result-container">
+            <div class="result" id="result"></div>
+            <button class="copy-btn" id="copy-btn" style="display: none">复制经文</button>
+        </div>
+    </div>
+    
+    <div class="modal" id="setting-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>复制设置</h2>
+                <span class="close-btn" id="setting-close-btn">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="setting-item">
+                    <label>
+                        <input type="checkbox" id="setting-with-verse-numbers" checked>
+                        带有节号
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <label>
+                        <input type="checkbox" id="setting-each-verse-newline">
+                        每节经文一行
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <label>
+                        <input type="checkbox" id="setting-short-book-name" checked>
+                        经卷名称缩写
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <label>经文章节标注位置：</label>
+                    <select id="setting-reference-position">
+                        <option value="single-top">单首行</option>
+                        <option value="top">在开头</option>
+                        <option value="bottom">在结尾</option>
+                        <option value="single-bottom">单尾行</option>
+                    </select>
+                </div>
+                <div class="setting-item">
+                    <label>经文标注括号样式：</label>
+                    <select id="setting-bracket-style">
+                        <option value="【】">【】</option>
+                        <option value="「」">「」</option>
+                        <option value="（）">（）</option>
+                        <option value="[]">[]</option>
+                        <option value="()">()</option>
+                    </select>
+                </div>
+                <div class="setting-actions">
+                    <button id="setting-save-btn" class="save-btn">保存设置</button>
+                </div>
+            </div>
+        </div>
     </div>
     
     <div class="modal" id="help-modal">

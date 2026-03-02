@@ -72,6 +72,15 @@ const books = [
 let bibleData = {};
 let loadedBooks = {};
 
+// 复制设置
+let copySettings = {
+    withVerseNumbers: true,
+    eachVerseNewline: false,
+    shortBookName: true,
+    referencePosition: 'single-top',
+    bracketStyle: '【】'
+};
+
 // 中文数字映射
 const chineseNumbers = {
     '零': 0, '一': 1, '二': 2, '三': 3, '四': 4,
@@ -198,7 +207,7 @@ function isCompleteVoiceInput(text) {
 }
 
 // DOM 元素
-let input, suggestions, result;
+let input, suggestions, result, copyBtn;
 
 // 当前状态
 let currentBook = null;
@@ -267,6 +276,7 @@ async function displayVerse(bookName, chapter, startVerse, endVerse) {
     
     if (!loaded || !bibleData[bookName] || !bibleData[bookName][chapter]) {
         result.innerHTML = '<p>未找到经文</p>';
+        copyBtn.style.display = 'none';
         return;
     }
 
@@ -292,6 +302,9 @@ async function displayVerse(bookName, chapter, startVerse, endVerse) {
             }
         }
     }
+    
+    // 显示复制按钮
+    copyBtn.style.display = 'block';
 }
 
 // 处理空格输入
@@ -491,15 +504,122 @@ function handleClickOutside(e) {
     }
 }
 
+// 复制经文
+function copyVerse() {
+    if (!currentBook || !currentChapter) return;
+    
+    // 获取经卷名称
+    const bookName = copySettings.shortBookName ? currentBook.short : currentBook.name;
+    
+    // 构建引用格式
+    const brackets = copySettings.bracketStyle;
+    let reference = `${brackets[0]}${bookName}${currentChapter}`;
+    if (currentEndVerse === 'end') {
+        reference += `:1-${Object.keys(bibleData[currentBook.name][currentChapter]).length}`;
+    } else if (!currentEndVerse || currentStartVerse === currentEndVerse) {
+        reference += `:${currentStartVerse}`;
+    } else {
+        reference += `:${currentStartVerse}-${currentEndVerse}`;
+    }
+    reference += brackets[1];
+    
+    // 构建经文内容
+    let content = '';
+    const chapterData = bibleData[currentBook.name][currentChapter];
+    const verses = [];
+    
+    if (currentEndVerse === 'end') {
+        for (let i = 1; i <= Object.keys(chapterData).length; i++) {
+            if (chapterData[i]) {
+                let verseText = '';
+                if (copySettings.withVerseNumbers) {
+                    verseText += `${i} `;
+                }
+                verseText += chapterData[i];
+                verses.push(verseText);
+            }
+        }
+    } else {
+        const endVerse = currentEndVerse || currentStartVerse;
+        for (let i = currentStartVerse; i <= endVerse; i++) {
+            if (chapterData[i]) {
+                let verseText = '';
+                if (copySettings.withVerseNumbers) {
+                    verseText += `${i} `;
+                }
+                verseText += chapterData[i];
+                verses.push(verseText);
+            }
+        }
+    }
+    
+    // 处理换行
+    if (copySettings.eachVerseNewline) {
+        content = verses.join('\n');
+    } else {
+        content = verses.join('');
+    }
+    
+    // 组合完整内容
+    let fullContent = '';
+    switch (copySettings.referencePosition) {
+        case 'single-top':
+            fullContent = `${reference}\n${content}`;
+            break;
+        case 'top':
+            fullContent = `${reference} ${content}`;
+            break;
+        case 'bottom':
+            fullContent = `${content}${reference}`;
+            break;
+        case 'single-bottom':
+            fullContent = `${content}\n${reference}`;
+            break;
+        default:
+            fullContent = `${reference}\n${content}`;
+    }
+    
+    // 复制到剪贴板
+    navigator.clipboard.writeText(fullContent).then(() => {
+        // 显示复制成功提示
+        const originalText = copyBtn.textContent;
+        copyBtn.textContent = '复制成功！';
+        copyBtn.style.backgroundColor = '#45a049';
+        
+        setTimeout(() => {
+            copyBtn.textContent = originalText;
+            copyBtn.style.backgroundColor = '#4CAF50';
+        }, 2000);
+    }).catch(err => {
+        console.error('复制失败:', err);
+        copyBtn.textContent = '复制失败';
+        copyBtn.style.backgroundColor = '#d32f2f';
+        
+        setTimeout(() => {
+            copyBtn.textContent = '复制经文';
+            copyBtn.style.backgroundColor = '#4CAF50';
+        }, 2000);
+    });
+}
+
 // 初始化
 document.addEventListener('DOMContentLoaded', function() {
     input = document.getElementById('bible-input');
     suggestions = document.getElementById('suggestions');
     result = document.getElementById('result');
+    copyBtn = document.getElementById('copy-btn');
     
     const helpBtn = document.getElementById('help-btn');
     const helpModal = document.getElementById('help-modal');
     const closeBtn = document.getElementById('close-btn');
+    
+    const settingBtn = document.getElementById('setting-btn');
+    const settingModal = document.getElementById('setting-modal');
+    const settingCloseBtn = document.getElementById('setting-close-btn');
+    const settingSaveBtn = document.getElementById('setting-save-btn');
+    
+    // 加载保存的设置
+    loadSettings();
     
     input.addEventListener('input', handleInput);
     input.addEventListener('keydown', handleKeydown);
@@ -535,4 +655,96 @@ document.addEventListener('DOMContentLoaded', function() {
             helpModal.style.display = 'none';
         }
     });
+    
+    // 复制按钮点击事件
+    copyBtn.addEventListener('click', copyVerse);
+    
+    // 设置按钮点击事件
+    settingBtn.addEventListener('click', function() {
+        settingModal.style.display = 'block';
+        // 填充当前设置
+        document.getElementById('setting-with-verse-numbers').checked = copySettings.withVerseNumbers;
+        document.getElementById('setting-each-verse-newline').checked = copySettings.eachVerseNewline;
+        document.getElementById('setting-short-book-name').checked = copySettings.shortBookName;
+        document.getElementById('setting-reference-position').value = copySettings.referencePosition;
+        document.getElementById('setting-bracket-style').value = copySettings.bracketStyle;
+    });
+    
+    // 关闭设置模态框
+    settingCloseBtn.addEventListener('click', function() {
+        settingModal.style.display = 'none';
+    });
+    
+    // 保存设置
+    settingSaveBtn.addEventListener('click', function() {
+        copySettings.withVerseNumbers = document.getElementById('setting-with-verse-numbers').checked;
+        copySettings.eachVerseNewline = document.getElementById('setting-each-verse-newline').checked;
+        copySettings.shortBookName = document.getElementById('setting-short-book-name').checked;
+        copySettings.referencePosition = document.getElementById('setting-reference-position').value;
+        copySettings.bracketStyle = document.getElementById('setting-bracket-style').value;
+        
+        saveSettings();
+        settingModal.style.display = 'none';
+    });
+    
+    // 点击设置模态框外部关闭
+    settingModal.addEventListener('click', function(e) {
+        if (e.target === settingModal) {
+            settingModal.style.display = 'none';
+        }
+    });
+    
+    // 主题切换按钮
+    const themeBtn = document.getElementById('theme-btn');
+    themeBtn.addEventListener('click', toggleTheme);
+    
+    // 加载主题设置
+    loadTheme();
 });
+
+// 切换主题
+function toggleTheme() {
+    const body = document.body;
+    const themeBtn = document.getElementById('theme-btn');
+    
+    if (body.classList.contains('light-mode')) {
+        body.classList.remove('light-mode');
+        themeBtn.textContent = '🌙';
+        localStorage.setItem('theme', 'dark');
+    } else {
+        body.classList.add('light-mode');
+        themeBtn.textContent = '☀️';
+        localStorage.setItem('theme', 'light');
+    }
+}
+
+// 加载主题设置
+function loadTheme() {
+    const savedTheme = localStorage.getItem('theme');
+    const themeBtn = document.getElementById('theme-btn');
+    
+    if (savedTheme === 'light') {
+        document.body.classList.add('light-mode');
+        themeBtn.textContent = '☀️';
+    } else {
+        document.body.classList.remove('light-mode');
+        themeBtn.textContent = '🌙';
+    }
+}
+
+// 保存设置到本地存储
+function saveSettings() {
+    localStorage.setItem('bibleCopySettings', JSON.stringify(copySettings));
+}
+
+// 从本地存储加载设置
+function loadSettings() {
+    const saved = localStorage.getItem('bibleCopySettings');
+    if (saved) {
+        try {
+            copySettings = JSON.parse(saved);
+        } catch (e) {
+            console.error('加载设置失败:', e);
+        }
+    }
+}
