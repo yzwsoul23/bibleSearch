@@ -11,8 +11,7 @@
         <div class="header">
             <h1>查经软件</h1>
             <div class="header-buttons">
-                <button class="theme-btn" id="theme-btn">🌙</button>
-                <button class="help-btn" id="help-btn">i</button>
+                <button class="help-btn" id="help-btn">?</button>
                 <button class="setting-btn" id="setting-btn">⚙️</button>
             </div>
         </div>
@@ -33,6 +32,13 @@
                 <span class="close-btn" id="setting-close-btn">&times;</span>
             </div>
             <div class="modal-body">
+                <div class="setting-item">
+                    <label>显示模式：</label>
+                    <select id="setting-display-mode">
+                        <option value="verse">逐节显示</option>
+                        <option value="paragraph">整段显示</option>
+                    </select>
+                </div>
                 <div class="setting-item">
                     <label>
                         <input type="checkbox" id="setting-with-verse-numbers" checked>

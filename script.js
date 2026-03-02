@@ -78,7 +78,8 @@ let copySettings = {
     eachVerseNewline: false,
     shortBookName: true,
     referencePosition: 'single-top',
-    bracketStyle: '【】'
+    bracketStyle: '【】',
+    displayMode: 'verse'
 };
 
 // 中文数字映射
@@ -283,22 +284,62 @@ async function displayVerse(bookName, chapter, startVerse, endVerse) {
     result.innerHTML = '';
     const chapterData = bibleData[bookName][chapter];
     
-    if (endVerse === 'end') {
-        for (let i = startVerse; i <= Object.keys(chapterData).length; i++) {
-            if (chapterData[i]) {
-                const verseElement = document.createElement('div');
-                verseElement.className = 'verse';
-                verseElement.innerHTML = `<span class="verse-number">${i}</span>${chapterData[i]}`;
-                result.appendChild(verseElement);
+    // 根据显示模式处理
+    if (copySettings.displayMode === 'paragraph') {
+        // 整段显示模式
+        result.classList.add('paragraph-mode');
+        
+        // 添加透字效果
+        const ghostText = document.createElement('div');
+        ghostText.className = 'ghost-text';
+        let ghostContent = '';
+        
+        // 显示经文
+        if (endVerse === 'end') {
+            for (let i = startVerse; i <= Object.keys(chapterData).length; i++) {
+                if (chapterData[i]) {
+                    const verseElement = document.createElement('span');
+                    verseElement.className = 'verse';
+                    verseElement.innerHTML = `<sup class="verse-number">${i}</sup>${chapterData[i]}`;
+                    result.appendChild(verseElement);
+                    ghostContent += `${i} ${chapterData[i]} `;
+                }
+            }
+        } else {
+            for (let i = startVerse; i <= endVerse; i++) {
+                if (chapterData[i]) {
+                    const verseElement = document.createElement('span');
+                    verseElement.className = 'verse';
+                    verseElement.innerHTML = `<sup class="verse-number">${i}</sup>${chapterData[i]}`;
+                    result.appendChild(verseElement);
+                    ghostContent += `${i} ${chapterData[i]} `;
+                }
             }
         }
+        
+        ghostText.textContent = ghostContent;
+        result.insertBefore(ghostText, result.firstChild);
     } else {
-        for (let i = startVerse; i <= endVerse; i++) {
-            if (chapterData[i]) {
-                const verseElement = document.createElement('div');
-                verseElement.className = 'verse';
-                verseElement.innerHTML = `<span class="verse-number">${i}</span>${chapterData[i]}`;
-                result.appendChild(verseElement);
+        // 逐节显示模式
+        result.classList.remove('paragraph-mode');
+        
+        if (endVerse === 'end') {
+            for (let i = startVerse; i <= Object.keys(chapterData).length; i++) {
+                if (chapterData[i]) {
+                    const verseElement = document.createElement('div');
+                    verseElement.className = 'verse';
+                    verseElement.innerHTML = `<span class="verse-number">${i}</span>${chapterData[i]}`;
+                    result.appendChild(verseElement);
+                }
+            }
+        } else {
+            for (let i = startVerse; i <= endVerse; i++) {
+                if (chapterData[i]) {
+                    const verseElement = document.createElement('div');
+                    verseElement.className = 'verse';
+                    verseElement.innerHTML = `<span class="verse-number">${i}</span>${chapterData[i]}`;
+                    result.appendChild(verseElement);
+                }
             }
         }
     }
@@ -662,6 +703,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // 设置按钮点击事件
     settingBtn.addEventListener('click', function() {
         settingModal.style.display = 'block';
+        // 添加显示模式填充
+        document.getElementById('setting-display-mode').value = copySettings.displayMode;
         // 填充当前设置
         document.getElementById('setting-with-verse-numbers').checked = copySettings.withVerseNumbers;
         document.getElementById('setting-each-verse-newline').checked = copySettings.eachVerseNewline;
@@ -682,6 +725,7 @@ document.addEventListener('DOMContentLoaded', function() {
         copySettings.shortBookName = document.getElementById('setting-short-book-name').checked;
         copySettings.referencePosition = document.getElementById('setting-reference-position').value;
         copySettings.bracketStyle = document.getElementById('setting-bracket-style').value;
+        copySettings.displayMode = document.getElementById('setting-display-mode').value;
         
         saveSettings();
         settingModal.style.display = 'none';
@@ -693,44 +737,7 @@ document.addEventListener('DOMContentLoaded', function() {
             settingModal.style.display = 'none';
         }
     });
-    
-    // 主题切换按钮
-    const themeBtn = document.getElementById('theme-btn');
-    themeBtn.addEventListener('click', toggleTheme);
-    
-    // 加载主题设置
-    loadTheme();
 });
-
-// 切换主题
-function toggleTheme() {
-    const body = document.body;
-    const themeBtn = document.getElementById('theme-btn');
-    
-    if (body.classList.contains('light-mode')) {
-        body.classList.remove('light-mode');
-        themeBtn.textContent = '🌙';
-        localStorage.setItem('theme', 'dark');
-    } else {
-        body.classList.add('light-mode');
-        themeBtn.textContent = '☀️';
-        localStorage.setItem('theme', 'light');
-    }
-}
-
-// 加载主题设置
-function loadTheme() {
-    const savedTheme = localStorage.getItem('theme');
-    const themeBtn = document.getElementById('theme-btn');
-    
-    if (savedTheme === 'light') {
-        document.body.classList.add('light-mode');
-        themeBtn.textContent = '☀️';
-    } else {
-        document.body.classList.remove('light-mode');
-        themeBtn.textContent = '🌙';
-    }
-}
 
 // 保存设置到本地存储
 function saveSettings() {
