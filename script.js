@@ -289,9 +289,7 @@ async function displayVerse(bookName, chapter, startVerse, endVerse) {
         // 整段显示模式
         result.classList.add('paragraph-mode');
         
-        // 添加透字效果
-        const ghostText = document.createElement('div');
-        ghostText.className = 'ghost-text';
+        // 收集经文内容
         let ghostContent = '';
         
         // 显示经文
@@ -317,8 +315,15 @@ async function displayVerse(bookName, chapter, startVerse, endVerse) {
             }
         }
         
-        ghostText.textContent = ghostContent;
-        result.insertBefore(ghostText, result.firstChild);
+        // 添加多层透字效果
+        for (let j = 0; j < 3; j++) {
+            const ghostText = document.createElement('div');
+            ghostText.className = 'ghost-text';
+            ghostText.textContent = ghostContent;
+            ghostText.style.transform = `translateY(${15 + j * 20}px)`;
+            ghostText.style.opacity = 0.6 - j * 0.2;
+            result.insertBefore(ghostText, result.firstChild);
+        }
     } else {
         // 逐节显示模式
         result.classList.remove('paragraph-mode');

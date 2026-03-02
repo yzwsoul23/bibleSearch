@@ -343,19 +343,20 @@ input:focus {
     top: 0;
     left: 0;
     right: 0;
-    bottom: 0;
-    color: rgba(51, 34, 17, 0.08);
+    color: rgba(51, 34, 17, 0.06);
     font-family: 'SimSun', '宋体', serif;
     font-size: 16px;
     font-weight: 1000;
     line-height: 2;
     padding: 30px 35px;
     pointer-events: none;
-    filter: blur(1px);
-    transform: translateY(2px);
+    filter: blur(1.5px);
+    transform: translateY(15px);
     z-index: -1;
     white-space: pre-wrap;
     word-wrap: break-word;
+    max-height: 100%;
+    overflow: hidden;
 }
 
 .copy-btn {
