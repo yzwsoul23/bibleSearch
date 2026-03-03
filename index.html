@@ -28,17 +28,26 @@
     <div class="modal" id="setting-modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>复制设置</h2>
+                <h2>设置</h2>
                 <span class="close-btn" id="setting-close-btn">&times;</span>
             </div>
             <div class="modal-body">
+                <h3>显示设置</h3>
                 <div class="setting-item">
                     <label>显示模式：</label>
                     <select id="setting-display-mode">
-                        <option value="verse">逐节显示</option>
+                        <option value="verse">分节显示</option>
                         <option value="paragraph">整段显示</option>
                     </select>
                 </div>
+                <div class="setting-item">
+                    <label>
+                        <input type="checkbox" id="setting-show-ghost-text" checked>
+                        显示透字效果
+                    </label>
+                </div>
+                
+                <h3>复制文本设置</h3>
                 <div class="setting-item">
                     <label>
                         <input type="checkbox" id="setting-with-verse-numbers" checked>

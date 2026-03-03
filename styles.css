@@ -45,7 +45,7 @@ body {
 }
 
 .container {
-    max-width: 900px;
+    max-width: 1100px;
     width: 100%;
     margin: 20px auto;
     background: var(--paper);
@@ -180,7 +180,7 @@ input {
     padding: 14px 20px;
     font-size: 15px;
     font-family: 'SimHei', '黑体', sans-serif;
-    font-weight: 500;
+    font-weight: 600;
     border: 2px solid var(--magenta);
     border-radius: 0;
     outline: none;
@@ -193,7 +193,7 @@ input {
 }
 
 input::placeholder {
-    color: var(--text-light);
+    color: #DAAFA9;
     font-style: italic;
 }
 
@@ -226,7 +226,7 @@ input:focus {
     color: var(--text-brown);
     transition: all 0.2s;
     font-family: 'SimHei', '黑体', sans-serif;
-    font-weight: 500;
+    font-weight: 600;
 }
 
 .suggestion-item:last-child {
@@ -284,7 +284,7 @@ input:focus {
 }
 
 .verse {
-    margin-bottom: 18px;
+    margin-bottom: 0;
     padding: 10px 15px;
     line-height: 2.2;
     border-radius: 0;
@@ -545,8 +545,13 @@ input:focus {
     color: var(--chapter-red);
     font-weight: 600;
     font-family: 'SimHei', '黑体', sans-serif;
-    border-bottom: 1px solid rgba(139, 0, 0, 0.2);
-    padding-bottom: 8px;
+    border-bottom: 2px solid rgba(139, 0, 0, 0.3);
+    padding-bottom: 10px;
+    margin-top: 25px;
+}
+
+.modal-body h3:first-child {
+    margin-top: 0;
 }
 
 .modal-body ul {
@@ -783,7 +788,7 @@ input:focus {
     }
     
     .verse {
-        margin-bottom: 15px;
+        margin-bottom: 0;
         padding: 10px 12px;
         font-size: 15px;
         line-height: 2;
@@ -883,7 +888,7 @@ input:focus {
     }
     
     .result {
-        padding: 15px 20px;
+        padding: 15px 10px;
     }
     
     .verse {
@@ -916,7 +921,7 @@ input:focus {
     }
     
     .verse {
-        padding: 12px 15px;
+        padding: 5px 10px;
     }
     
     input {

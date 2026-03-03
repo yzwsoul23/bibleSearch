@@ -79,7 +79,8 @@ let copySettings = {
     shortBookName: true,
     referencePosition: 'single-top',
     bracketStyle: '【】',
-    displayMode: 'verse'
+    displayMode: 'verse',
+    showGhostText: true
 };
 
 // 中文数字映射
@@ -316,19 +317,21 @@ async function displayVerse(bookName, chapter, startVerse, endVerse) {
         }
         
         // 添加多层透字效果
-        const offsets = [
-            { y: -32, x: -2 },  // 向上偏移一行，向左偏移2px
-            { y: 32, x: 2 },    // 向下偏移一行，向右偏移2px
-            { y: -16, x: 1 }    // 向上偏移半行，向右偏移1px
-        ];
-        
-        for (let j = 0; j < 3; j++) {
-            const ghostText = document.createElement('div');
-            ghostText.className = 'ghost-text';
-            ghostText.textContent = ghostContent;
-            ghostText.style.transform = `translate(${offsets[j].x}px, ${offsets[j].y}px)`;
-            ghostText.style.opacity = 1 - j * 0.3;
-            result.insertBefore(ghostText, result.firstChild);
+        if (copySettings.showGhostText) {
+            const offsets = [
+                { y: -32, x: -2 },  // 向上偏移一行，向左偏移2px
+                { y: 32, x: 2 },    // 向下偏移一行，向右偏移2px
+                { y: -16, x: 1 }    // 向上偏移半行，向右偏移1px
+            ];
+            
+            for (let j = 0; j < 3; j++) {
+                const ghostText = document.createElement('div');
+                ghostText.className = 'ghost-text';
+                ghostText.textContent = ghostContent;
+                ghostText.style.transform = `translate(${offsets[j].x}px, ${offsets[j].y}px)`;
+                ghostText.style.opacity = 1 - j * 0.3;
+                result.insertBefore(ghostText, result.firstChild);
+            }
         }
     } else {
         // 逐节显示模式
@@ -714,9 +717,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // 设置按钮点击事件
     settingBtn.addEventListener('click', function() {
         settingModal.style.display = 'block';
-        // 添加显示模式填充
-        document.getElementById('setting-display-mode').value = copySettings.displayMode;
         // 填充当前设置
+        document.getElementById('setting-display-mode').value = copySettings.displayMode;
+        document.getElementById('setting-show-ghost-text').checked = copySettings.showGhostText;
         document.getElementById('setting-with-verse-numbers').checked = copySettings.withVerseNumbers;
         document.getElementById('setting-each-verse-newline').checked = copySettings.eachVerseNewline;
         document.getElementById('setting-short-book-name').checked = copySettings.shortBookName;
@@ -731,15 +734,21 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 保存设置
     settingSaveBtn.addEventListener('click', function() {
+        copySettings.displayMode = document.getElementById('setting-display-mode').value;
+        copySettings.showGhostText = document.getElementById('setting-show-ghost-text').checked;
         copySettings.withVerseNumbers = document.getElementById('setting-with-verse-numbers').checked;
         copySettings.eachVerseNewline = document.getElementById('setting-each-verse-newline').checked;
         copySettings.shortBookName = document.getElementById('setting-short-book-name').checked;
         copySettings.referencePosition = document.getElementById('setting-reference-position').value;
         copySettings.bracketStyle = document.getElementById('setting-bracket-style').value;
-        copySettings.displayMode = document.getElementById('setting-display-mode').value;
         
         saveSettings();
         settingModal.style.display = 'none';
+        
+        // 如果当前有显示经文，重新显示
+        if (currentBook && currentChapter && currentStartVerse) {
+            displayVerse(currentBook.name, currentChapter, currentStartVerse, currentEndVerse);
+        }
     });
     
     // 点击设置模态框外部关闭
