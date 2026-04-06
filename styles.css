@@ -358,6 +358,59 @@ input:focus {
     overflow: hidden;
 }
 
+/* 语义化着色样式（基于Monarch词法分析器） */
+.bible-quote {
+    color: #9C2542;
+    font-weight: inherit;
+}
+
+.bible-bracket {
+    color: #6D4C41;
+    font-weight: inherit;
+}
+
+.bible-punctuation {
+    color: #998877;
+    opacity: 0.85;
+}
+
+.bible-number {
+    color: #8B6914;
+    font-family: 'Times New Roman', serif;
+    font-weight: 600;
+}
+
+.bible-english {
+    color: #4A5568;
+    font-style: italic;
+}
+
+.bible-special {
+    color: #AD1457;
+}
+
+/* Pretext 排版引擎容器 */
+.pretext-container {
+    display: inline;
+    font-family: 'SimSun', '宋体', serif;
+    font-size: 16px;
+    font-weight: 1000;
+    line-height: inherit;
+}
+
+.pretext-container .bible-quote,
+.pretext-container .bible-bracket,
+.pretext-container .bible-punctuation,
+.pretext-container .bible-number,
+.pretext-container .bible-english,
+.pretext-container .bible-special {
+    display: inline;
+}
+
+.pretext-line {
+    display: contents;
+}
+
 .copy-btn {
     margin-top: 25px;
     padding: 12px 40px;

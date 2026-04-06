@@ -80,8 +80,401 @@ let copySettings = {
     referencePosition: 'single-top',
     bracketStyle: '【】',
     displayMode: 'verse',
-    showGhostText: true
+    showGhostText: true,
+    enableSemanticColoring: true
 };
+
+// 语义化着色配置（基于Monarch词法分析器）
+const SemanticColoringConfig = {
+    quotes: {
+        open: ['"', "'", '「', '『', '\u201C', '\u2018'],
+        close: ['"', "'", '」', '』', '\u201D', '\u2019'],
+        className: 'bible-quote'
+    },
+    brackets: {
+        pairs: [
+            { open: '《', close: '》' },
+            { open: '<', close: '>' },
+            { open: '＜', close: '＞' },
+            { open: '(', close: ')' },
+            { open: '（', close: '）' },
+            { open: '[', close: ']' },
+            { open: '【', close: '】' },
+            { open: '〖', close: '〗' },
+            { open: '{', close: '}' },
+            { open: '｛', close: '｝' }
+        ],
+        className: 'bible-bracket'
+    },
+    punctuation: /[,，.。!！?？:：;；、）\]\}｝】〗》＞>…—\-]/,
+    number: /[0-9０-９]+/,
+    english: /[A-Za-z\uFF21-\uFF3A\uFF41-\uFF5A]+/,
+    specialMarker: /[·•▪*＊✲❈※☆♡♥○●√✔☑×✘☒]/
+};
+
+function colorizeText(text) {
+    if (!copySettings.enableSemanticColoring) {
+        return text;
+    }
+
+    let result = '';
+    let i = 0;
+    const len = text.length;
+    const config = SemanticColoringConfig;
+
+    while (i < len) {
+        let matched = false;
+        const char = text[i];
+
+        // 1. 检测引号开始
+        for (let q = 0; q < config.quotes.open.length; q++) {
+            if (text.startsWith(config.quotes.open[q], i)) {
+                const closeQuote = config.quotes.close[q];
+                const closeIdx = text.indexOf(closeQuote, i + 1);
+                if (closeIdx !== -1) {
+                    // 找到配对引号
+                    const innerContent = text.substring(i + 1, closeIdx);
+                    result += `<span class="${config.quotes.className}">${escapeHtml(config.quotes.open[q])}${colorizeText(innerContent)}${escapeHtml(closeQuote)}</span>`;
+                    i = closeIdx + 1;
+                    matched = true;
+                    break;
+                } else {
+                    // 未配对引号，作为普通文本处理
+                    result += escapeHtml(char);
+                    i++;
+                    matched = true;
+                    break;
+                }
+            }
+        }
+
+        if (matched) continue;
+
+        // 2. 检测括号开始
+        for (const bracket of config.brackets.pairs) {
+            if (text.startsWith(bracket.open, i)) {
+                const closeIdx = text.indexOf(bracket.close, i + 1);
+                if (closeIdx !== -1) {
+                    // 找到配对括号
+                    const innerContent = text.substring(i + 1, closeIdx);
+                    result += `<span class="${config.brackets.className}">${escapeHtml(bracket.open)}${colorizeText(innerContent)}${escapeHtml(bracket.close)}</span>`;
+                    i = closeIdx + 1;
+                    matched = true;
+                    break;
+                } else {
+                    // 未配对括号，作为普通文本处理
+                    result += escapeHtml(char);
+                    i++;
+                    matched = true;
+                    break;
+                }
+            }
+        }
+
+        if (matched) continue;
+
+        // 3. 检测特殊标记
+        const specialMatch = text.slice(i).match(config.specialMarker);
+        if (specialMatch && specialMatch.index === 0) {
+            result += `<span class="bible-special">${escapeHtml(specialMatch[0])}</span>`;
+            i += specialMatch[0].length;
+            continue;
+        }
+
+        // 4. 检测数字
+        const numMatch = text.slice(i).match(config.number);
+        if (numMatch && numMatch.index === 0) {
+            result += `<span class="bible-number">${escapeHtml(numMatch[0])}</span>`;
+            i += numMatch[0].length;
+            continue;
+        }
+
+        // 5. 检测英文
+        const engMatch = text.slice(i).match(config.english);
+        if (engMatch && engMatch.index === 0) {
+            result += `<span class="bible-english">${escapeHtml(engMatch[0])}</span>`;
+            i += engMatch[0].length;
+            continue;
+        }
+
+        // 6. 检测标点符号
+        const punctMatch = text.slice(i).match(config.punctuation);
+        if (punctMatch && punctMatch.index === 0) {
+            result += `<span class="bible-punctuation">${escapeHtml(punctMatch[0])}</span>`;
+            i += punctMatch[0].length;
+            continue;
+        }
+
+        // 7. 兜底：普通字符
+        result += escapeHtml(char);
+        i++;
+    }
+
+    return result;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+const VERSE_BOUNDARY = '\x00\x00VERSE\x00\x00';
+
+function colorizeVerses(verseTexts) {
+    if (!copySettings.enableSemanticColoring || !verseTexts || verseTexts.length === 0) {
+        return verseTexts || [];
+    }
+
+    const mergedText = verseTexts.join(VERSE_BOUNDARY);
+    const coloredHtml = colorizeTextWithBoundaries(mergedText);
+    return coloredHtml.split(VERSE_BOUNDARY);
+}
+
+function colorizeTextWithBoundaries(text) {
+    let result = '';
+    let i = 0;
+    const len = text.length;
+    const config = SemanticColoringConfig;
+
+    while (i < len) {
+        // 检测到节边界标记，直接保留
+        if (text.startsWith(VERSE_BOUNDARY, i)) {
+            result += VERSE_BOUNDARY;
+            i += VERSE_BOUNDARY.length;
+            continue;
+        }
+
+        let matched = false;
+        const char = text[i];
+
+        // 1. 检测引号开始
+        for (let q = 0; q < config.quotes.open.length; q++) {
+            if (text.startsWith(config.quotes.open[q], i)) {
+                const openQuote = config.quotes.open[q];
+                const closeQuote = config.quotes.close[q];
+                const closeIdx = text.indexOf(closeQuote, i + openQuote.length);
+
+                if (closeIdx !== -1) {
+                    // 找到配对引号
+                    const innerContent = text.substring(i + openQuote.length, closeIdx);
+
+                    if (!innerContent.includes(VERSE_BOUNDARY)) {
+                        // 同一节内，直接整体着色
+                        result += `<span class="${config.quotes.className}">${escapeHtml(openQuote)}${colorizeTextWithBoundaries(innerContent)}${escapeHtml(closeQuote)}</span>`;
+                    } else {
+                        // 跨越多节，每段用独立完整的span包裹
+                        const parts = innerContent.split(VERSE_BOUNDARY);
+                        const cls = config.quotes.className;
+
+                        // 第一段：带开引号
+                        result += `<span class="${cls}">${escapeHtml(openQuote)}${colorizeTextWithBoundaries(parts[0])}</span>`;
+
+                        // 中间段：无引号但同色
+                        for (let p = 1; p < parts.length - 1; p++) {
+                            result += VERSE_BOUNDARY;
+                            result += `<span class="${cls}">${colorizeTextWithBoundaries(parts[p])}</span>`;
+                        }
+
+                        // 最后一段：带闭引号
+                        if (parts.length > 1) {
+                            result += VERSE_BOUNDARY;
+                            result += `<span class="${cls}">${colorizeTextWithBoundaries(parts[parts.length - 1])}${escapeHtml(closeQuote)}</span>`;
+                        }
+                    }
+
+                    i = closeIdx + closeQuote.length;
+                    matched = true;
+                    break;
+                } else {
+                    // 未找到闭合引号，作为普通文本处理
+                    result += escapeHtml(char);
+                    i++;
+                    matched = true;
+                    break;
+                }
+            }
+        }
+
+        if (matched) continue;
+
+        // 2. 检测括号开始
+        for (const bracket of config.brackets.pairs) {
+            if (text.startsWith(bracket.open, i)) {
+                const closeIdx = text.indexOf(bracket.close, i + bracket.open.length);
+
+                if (closeIdx !== -1) {
+                    // 找到配对括号
+                    const innerContent = text.substring(i + bracket.open.length, closeIdx);
+
+                    if (!innerContent.includes(VERSE_BOUNDARY)) {
+                        // 同一节内，直接整体着色
+                        result += `<span class="${config.brackets.className}">${escapeHtml(bracket.open)}${colorizeTextWithBoundaries(innerContent)}${escapeHtml(bracket.close)}</span>`;
+                    } else {
+                        // 跨越多节，每段用独立完整的span包裹
+                        const parts = innerContent.split(VERSE_BOUNDARY);
+                        const cls = config.brackets.className;
+
+                        // 第一段：带开括号
+                        result += `<span class="${cls}">${escapeHtml(bracket.open)}${colorizeTextWithBoundaries(parts[0])}</span>`;
+
+                        // 中间段：无括号但同色
+                        for (let p = 1; p < parts.length - 1; p++) {
+                            result += VERSE_BOUNDARY;
+                            result += `<span class="${cls}">${colorizeTextWithBoundaries(parts[p])}</span>`;
+                        }
+
+                        // 最后一段：带闭括号
+                        if (parts.length > 1) {
+                            result += VERSE_BOUNDARY;
+                            result += `<span class="${cls}">${colorizeTextWithBoundaries(parts[parts.length - 1])}${escapeHtml(bracket.close)}</span>`;
+                        }
+                    }
+
+                    i = closeIdx + bracket.close.length;
+                    matched = true;
+                    break;
+                } else {
+                    // 未找到闭合括号，作为普通文本处理
+                    result += escapeHtml(char);
+                    i++;
+                    matched = true;
+                    break;
+                }
+            }
+        }
+
+        if (matched) continue;
+
+        // 3. 检测特殊标记
+        const specialMatch = text.slice(i).match(config.specialMarker);
+        if (specialMatch && specialMatch.index === 0) {
+            result += `<span class="bible-special">${escapeHtml(specialMatch[0])}</span>`;
+            i += specialMatch[0].length;
+            continue;
+        }
+
+        // 4. 检测数字
+        const numMatch = text.slice(i).match(config.number);
+        if (numMatch && numMatch.index === 0) {
+            result += `<span class="bible-number">${escapeHtml(numMatch[0])}</span>`;
+            i += numMatch[0].length;
+            continue;
+        }
+
+        // 5. 检测英文
+        const engMatch = text.slice(i).match(config.english);
+        if (engMatch && engMatch.index === 0) {
+            result += `<span class="bible-english">${escapeHtml(engMatch[0])}</span>`;
+            i += engMatch[0].length;
+            continue;
+        }
+
+        // 6. 检测标点符号
+        const punctMatch = text.slice(i).match(config.punctuation);
+        if (punctMatch && punctMatch.index === 0) {
+            result += `<span class="bible-punctuation">${escapeHtml(punctMatch[0])}</span>`;
+            i += punctMatch[0].length;
+            continue;
+        }
+
+        // 7. 兜底：普通字符
+        result += escapeHtml(char);
+        i++;
+    }
+
+    return result;
+}
+
+// 基于 Pretext 技术的语义化着色（使用 Rich-Inline 布局引擎）
+function colorizeWithPretextEngine(text) {
+    if (!copySettings.enableSemanticColoring || typeof PretextBible === 'undefined') {
+        return text;
+    }
+
+    try {
+        const domNode = PretextBible.colorizeWithPretext(text, true);
+        if (domNode && domNode.nodeType === 1) {
+            return domNode;
+        }
+        return text;
+    } catch (e) {
+        console.warn('Pretext 引擎出错，回退到传统模式:', e);
+        return colorizeText(text);
+    }
+}
+
+function renderVerseWithPretext(verseElement, verseNumber, text, isParagraphMode = false) {
+    console.log('[Script] renderVerseWithPretext called:', { verseNumber, textLength: text.length, isParagraphMode });
+    console.log('[Script] PretextBible available:', typeof PretextBible !== 'undefined');
+    console.log('[Script] enableSemanticColoring:', copySettings.enableSemanticColoring);
+
+    if (typeof PretextBible === 'undefined') {
+        console.log('[Script] PretextBible undefined! Falling back to traditional mode');
+        if (isParagraphMode) {
+            verseElement.innerHTML = `<sup class="verse-number">${verseNumber}</sup>${colorizeText(text)}`;
+        } else {
+            verseElement.innerHTML = `<span class="verse-number">${verseNumber}</span>${colorizeText(text)}`;
+        }
+        return;
+    }
+
+    try {
+        if (isParagraphMode) {
+            const numberSup = document.createElement('sup');
+            numberSup.className = 'verse-number';
+            numberSup.textContent = verseNumber;
+            verseElement.appendChild(numberSup);
+
+            if (copySettings.enableSemanticColoring) {
+                console.log('[Script] Calling PretextBible.colorizeWithPretext...');
+                const coloredContent = PretextBible.colorizeWithPretext(text, true);
+                console.log('[Script] Returned content type:', typeof coloredContent, 'nodeType:', coloredContent?.nodeType);
+                
+                if (coloredContent && coloredContent.nodeType === 1) {
+                    verseElement.appendChild(coloredContent);
+                    console.log('[Script] Successfully appended colored DOM node');
+                } else {
+                    console.warn('[Script] Invalid returned content, using plain text');
+                    verseElement.appendChild(document.createTextNode(text));
+                }
+            } else {
+                console.log('[Script] Coloring disabled by settings, using plain text');
+                verseElement.appendChild(document.createTextNode(text));
+            }
+        } else {
+            const numberSpan = document.createElement('span');
+            numberSpan.className = 'verse-number';
+            numberSpan.textContent = verseNumber;
+            verseElement.appendChild(numberSpan);
+
+            if (copySettings.enableSemanticColoring) {
+                console.log('[Script] Calling PretextBible.colorizeWithPretext...');
+                const coloredContent = PretextBible.colorizeWithPretext(text, true);
+                console.log('[Script] Returned content type:', typeof coloredContent, 'nodeType:', coloredContent?.nodeType);
+                
+                if (coloredContent && coloredContent.nodeType === 1) {
+                    verseElement.appendChild(coloredContent);
+                    console.log('[Script] Successfully appended colored DOM node');
+                } else {
+                    console.warn('[Script] Invalid returned content, using plain text');
+                    verseElement.appendChild(document.createTextNode(text));
+                }
+            } else {
+                console.log('[Script] Coloring disabled by settings, using plain text');
+                verseElement.appendChild(document.createTextNode(text));
+            }
+        }
+    } catch (e) {
+        console.error('[Script] Pretext 渲染出错:', e);
+        console.warn('回退到传统模式');
+        if (isParagraphMode) {
+            verseElement.innerHTML = `<sup class="verse-number">${verseNumber}</sup>${colorizeText(text)}`;
+        } else {
+            verseElement.innerHTML = `<span class="verse-number">${verseNumber}</span>${colorizeText(text)}`;
+        }
+    }
+}
 
 // 中文数字映射
 const chineseNumbers = {
@@ -289,33 +682,57 @@ async function displayVerse(bookName, chapter, startVerse, endVerse) {
     if (copySettings.displayMode === 'paragraph') {
         // 整段显示模式
         result.classList.add('paragraph-mode');
-        
-        // 收集经文内容
-        let ghostContent = '';
-        
-        // 显示经文
+
+        // 收集所有节文本
+        const verseTexts = [];
+        const verseNumbers = [];
+
         if (endVerse === 'end') {
             for (let i = startVerse; i <= Object.keys(chapterData).length; i++) {
                 if (chapterData[i]) {
-                    const verseElement = document.createElement('span');
-                    verseElement.className = 'verse';
-                    verseElement.innerHTML = `<sup class="verse-number">${i}</sup>${chapterData[i]}`;
-                    result.appendChild(verseElement);
-                    ghostContent += `${i} ${chapterData[i]} `;
+                    verseTexts.push(chapterData[i]);
+                    verseNumbers.push(i);
                 }
             }
         } else {
             for (let i = startVerse; i <= endVerse; i++) {
                 if (chapterData[i]) {
-                    const verseElement = document.createElement('span');
-                    verseElement.className = 'verse';
-                    verseElement.innerHTML = `<sup class="verse-number">${i}</sup>${chapterData[i]}`;
-                    result.appendChild(verseElement);
-                    ghostContent += `${i} ${chapterData[i]} `;
+                    verseTexts.push(chapterData[i]);
+                    verseNumbers.push(i);
                 }
             }
         }
+
+        // 使用跨节联合 Pretext 引擎渲染经文
+        let ghostContent = '';
         
+        // 调用 Pretext 的跨节联合着色函数
+        const coloredFragments = typeof PretextBible !== 'undefined' && copySettings.enableSemanticColoring
+            ? PretextBible.colorizeVersesWithPretext(verseTexts, true)
+            : null;
+
+        for (let idx = 0; idx < verseNumbers.length; idx++) {
+            const i = verseNumbers[idx];
+            const verseElement = document.createElement('span');
+            verseElement.className = 'verse';
+
+            // 添加节号
+            const numberSup = document.createElement('sup');
+            numberSup.className = 'verse-number';
+            numberSup.textContent = i;
+            verseElement.appendChild(numberSup);
+
+            // 添加着色内容或纯文本
+            if (coloredFragments && coloredFragments[idx]) {
+                verseElement.appendChild(coloredFragments[idx].cloneNode(true));
+            } else {
+                verseElement.appendChild(document.createTextNode(chapterData[i]));
+            }
+
+            result.appendChild(verseElement);
+            ghostContent += `${i} ${chapterData[i]} `;
+        }
+
         // 添加多层透字效果
         if (copySettings.showGhostText) {
             const offsets = [
@@ -323,7 +740,7 @@ async function displayVerse(bookName, chapter, startVerse, endVerse) {
                 { y: 32, x: 2 },    // 向下偏移一行，向右偏移2px
                 { y: -16, x: 1 }    // 向上偏移半行，向右偏移1px
             ];
-            
+
             for (let j = 0; j < 3; j++) {
                 const ghostText = document.createElement('div');
                 ghostText.className = 'ghost-text';
@@ -336,25 +753,51 @@ async function displayVerse(bookName, chapter, startVerse, endVerse) {
     } else {
         // 逐节显示模式
         result.classList.remove('paragraph-mode');
-        
+
+        // 收集所有节文本
+        const verseTexts = [];
+        const verseNumbers = [];
+
         if (endVerse === 'end') {
             for (let i = startVerse; i <= Object.keys(chapterData).length; i++) {
                 if (chapterData[i]) {
-                    const verseElement = document.createElement('div');
-                    verseElement.className = 'verse';
-                    verseElement.innerHTML = `<span class="verse-number">${i}</span>${chapterData[i]}`;
-                    result.appendChild(verseElement);
+                    verseTexts.push(chapterData[i]);
+                    verseNumbers.push(i);
                 }
             }
         } else {
             for (let i = startVerse; i <= endVerse; i++) {
                 if (chapterData[i]) {
-                    const verseElement = document.createElement('div');
-                    verseElement.className = 'verse';
-                    verseElement.innerHTML = `<span class="verse-number">${i}</span>${chapterData[i]}`;
-                    result.appendChild(verseElement);
+                    verseTexts.push(chapterData[i]);
+                    verseNumbers.push(i);
                 }
             }
+        }
+
+        // 使用跨节联合 Pretext 引擎渲染经文
+        const coloredFragments = typeof PretextBible !== 'undefined' && copySettings.enableSemanticColoring
+            ? PretextBible.colorizeVersesWithPretext(verseTexts, true)
+            : null;
+
+        for (let idx = 0; idx < verseNumbers.length; idx++) {
+            const i = verseNumbers[idx];
+            const verseElement = document.createElement('div');
+            verseElement.className = 'verse';
+
+            // 添加节号
+            const numberSpan = document.createElement('span');
+            numberSpan.className = 'verse-number';
+            numberSpan.textContent = i;
+            verseElement.appendChild(numberSpan);
+
+            // 添加着色内容或纯文本
+            if (coloredFragments && coloredFragments[idx]) {
+                verseElement.appendChild(coloredFragments[idx].cloneNode(true));
+            } else {
+                verseElement.appendChild(document.createTextNode(chapterData[i]));
+            }
+
+            result.appendChild(verseElement);
         }
     }
     
@@ -720,6 +1163,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // 填充当前设置
         document.getElementById('setting-display-mode').value = copySettings.displayMode;
         document.getElementById('setting-show-ghost-text').checked = copySettings.showGhostText;
+        document.getElementById('setting-enable-semantic-coloring').checked = copySettings.enableSemanticColoring;
         document.getElementById('setting-with-verse-numbers').checked = copySettings.withVerseNumbers;
         document.getElementById('setting-each-verse-newline').checked = copySettings.eachVerseNewline;
         document.getElementById('setting-short-book-name').checked = copySettings.shortBookName;
@@ -736,15 +1180,16 @@ document.addEventListener('DOMContentLoaded', function() {
     settingSaveBtn.addEventListener('click', function() {
         copySettings.displayMode = document.getElementById('setting-display-mode').value;
         copySettings.showGhostText = document.getElementById('setting-show-ghost-text').checked;
+        copySettings.enableSemanticColoring = document.getElementById('setting-enable-semantic-coloring').checked;
         copySettings.withVerseNumbers = document.getElementById('setting-with-verse-numbers').checked;
         copySettings.eachVerseNewline = document.getElementById('setting-each-verse-newline').checked;
         copySettings.shortBookName = document.getElementById('setting-short-book-name').checked;
         copySettings.referencePosition = document.getElementById('setting-reference-position').value;
         copySettings.bracketStyle = document.getElementById('setting-bracket-style').value;
-        
+
         saveSettings();
         settingModal.style.display = 'none';
-        
+
         // 如果当前有显示经文，重新显示
         if (currentBook && currentChapter && currentStartVerse) {
             displayVerse(currentBook.name, currentChapter, currentStartVerse, currentEndVerse);
@@ -769,7 +1214,8 @@ function loadSettings() {
     const saved = localStorage.getItem('bibleCopySettings');
     if (saved) {
         try {
-            copySettings = JSON.parse(saved);
+            const loaded = JSON.parse(saved);
+            copySettings = { ...copySettings, ...loaded };
         } catch (e) {
             console.error('加载设置失败:', e);
         }
