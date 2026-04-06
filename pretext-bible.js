@@ -226,15 +226,17 @@ const PretextBible = (() => {
 
                     if (closeIdx !== -1) {
                         const innerContent = text.substring(i + openQuote.length, closeIdx);
-                        const quoteClass = config.quotes.className;
 
-                        items.push({ text: openQuote, className: quoteClass || parentClassName, font: '1000 16px SimSun' });
-                        
-                        // 递归处理内部内容，传递引号类名作为父级
-                        const innerItems = parseToRichInlineItems(innerContent, config, quoteClass);
+                        // 关键修复：如果已在括号/引号内，继承父级颜色；否则使用引号自己的颜色
+                        const effectiveClass = parentClassName || config.quotes.className;
+
+                        items.push({ text: openQuote, className: effectiveClass, font: '1000 16px SimSun' });
+
+                        // 递归处理内部内容，强制继承父级颜色（防止括号内的引号变回品红）
+                        const innerItems = parseToRichInlineItems(innerContent, config, effectiveClass);
                         items.push(...innerItems);
-                        
-                        items.push({ text: closeQuote, className: quoteClass || parentClassName, font: '1000 16px SimSun' });
+
+                        items.push({ text: closeQuote, className: effectiveClass, font: '1000 16px SimSun' });
 
                         i = closeIdx + closeQuote.length;
                         matched = true;
@@ -252,15 +254,17 @@ const PretextBible = (() => {
 
                     if (closeIdx !== -1) {
                         const innerContent = text.substring(i + bracket.open.length, closeIdx);
-                        const bracketClass = config.brackets.className;
 
-                        items.push({ text: bracket.open, className: bracketClass || parentClassName, font: '1000 16px SimSun' });
-                        
-                        // 递归处理内部内容，传递括号类名作为父级
-                        const innerItems = parseToRichInlineItems(innerContent, config, bracketClass);
+                        // 关键修复：如果已在括号/引号内，继承父级颜色；否则使用括号自己的颜色
+                        const effectiveClass = parentClassName || config.brackets.className;
+
+                        items.push({ text: bracket.open, className: effectiveClass, font: '1000 16px SimSun' });
+
+                        // 递归处理内部内容，强制继承父级颜色（防止括号内的引号变回品红）
+                        const innerItems = parseToRichInlineItems(innerContent, config, effectiveClass);
                         items.push(...innerItems);
-                        
-                        items.push({ text: bracket.close, className: bracketClass || parentClassName, font: '1000 16px SimSun' });
+
+                        items.push({ text: bracket.close, className: effectiveClass, font: '1000 16px SimSun' });
 
                         i = closeIdx + bracket.close.length;
                         matched = true;
