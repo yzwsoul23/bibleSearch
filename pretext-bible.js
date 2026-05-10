@@ -227,16 +227,14 @@ const PretextBible = (() => {
                     if (closeIdx !== -1) {
                         const innerContent = text.substring(i + openQuote.length, closeIdx);
 
-                        // 关键修复：如果已在括号/引号内，继承父级颜色；否则使用引号自己的颜色
-                        const effectiveClass = parentClassName || config.quotes.className;
+                        // 关键修复：引号始终使用自身的颜色（深蓝色），不继承父级（括号）
+                        items.push({ text: openQuote, className: config.quotes.className, font: '1000 16px SimSun' });
 
-                        items.push({ text: openQuote, className: effectiveClass, font: '1000 16px SimSun' });
-
-                        // 递归处理内部内容，强制继承父级颜色（防止括号内的引号变回品红）
-                        const innerItems = parseToRichInlineItems(innerContent, config, effectiveClass);
+                        // 递归处理内部内容，传递引号的颜色作为父级
+                        const innerItems = parseToRichInlineItems(innerContent, config, config.quotes.className);
                         items.push(...innerItems);
 
-                        items.push({ text: closeQuote, className: effectiveClass, font: '1000 16px SimSun' });
+                        items.push({ text: closeQuote, className: config.quotes.className, font: '1000 16px SimSun' });
 
                         i = closeIdx + closeQuote.length;
                         matched = true;
@@ -255,16 +253,16 @@ const PretextBible = (() => {
                     if (closeIdx !== -1) {
                         const innerContent = text.substring(i + bracket.open.length, closeIdx);
 
-                        // 关键修复：如果已在括号/引号内，继承父级颜色；否则使用括号自己的颜色
-                        const effectiveClass = parentClassName || config.brackets.className;
+                        // 关键修复：括号始终使用自身的颜色（深棕色），不继承父级（引号）
+                        // 这样"引号内的括号"就会显示为括号的本色
+                        items.push({ text: bracket.open, className: config.brackets.className, font: '1000 16px SimSun' });
 
-                        items.push({ text: bracket.open, className: effectiveClass, font: '1000 16px SimSun' });
-
-                        // 递归处理内部内容，强制继承父级颜色（防止括号内的引号变回品红）
-                        const innerItems = parseToRichInlineItems(innerContent, config, effectiveClass);
+                        // 递归处理内部内容，传递括号的颜色作为父级
+                        // 这样括号内的普通文本会继承括号颜色，但嵌套的符号会用自身颜色
+                        const innerItems = parseToRichInlineItems(innerContent, config, config.brackets.className);
                         items.push(...innerItems);
 
-                        items.push({ text: bracket.close, className: effectiveClass, font: '1000 16px SimSun' });
+                        items.push({ text: bracket.close, className: config.brackets.className, font: '1000 16px SimSun' });
 
                         i = closeIdx + bracket.close.length;
                         matched = true;
@@ -275,7 +273,7 @@ const PretextBible = (() => {
 
             if (matched) continue;
 
-            // 检测特殊标记（特殊标记优先级最高，不继承父级类）
+            // 检测特殊标记（特殊标记优先级最高，始终使用自身颜色）
             const specialMatch = text.slice(i).match(config.specialMarker);
             if (specialMatch && specialMatch.index === 0) {
                 items.push({ text: specialMatch[0], className: 'bible-special', font: '1000 16px SimSun' });
@@ -283,47 +281,47 @@ const PretextBible = (() => {
                 continue;
             }
 
-            // 检测数字（在引号/括号内时继承父级颜色）
+            // 检测数字（始终使用自身颜色 - 金色）
             const numMatch = text.slice(i).match(config.number);
             if (numMatch && numMatch.index === 0) {
                 items.push({
                     text: numMatch[0],
-                    className: parentClassName || 'bible-number',
+                    className: 'bible-number',
                     font: '600 16px Times New Roman'
                 });
                 i += numMatch[0].length;
                 continue;
             }
 
-            // 检测英文（在引号/括号内时继承父级颜色）
+            // 检测英文（始终使用自身颜色 - 蓝灰斜体）
             const engMatch = text.slice(i).match(config.english);
             if (engMatch && engMatch.index === 0) {
                 items.push({
                     text: engMatch[0],
-                    className: parentClassName || 'bible-english',
+                    className: 'bible-english',
                     font: 'italic 16px SimSun'
                 });
                 i += engMatch[0].length;
                 continue;
             }
 
-            // 检测标点符号（在引号/括号内时继承父级颜色）
+            // 检测标点符号（始终使用自身颜色 - 弱化灰）
             const punctMatch = text.slice(i).match(config.punctuation);
             if (punctMatch && punctMatch.index === 0) {
                 items.push({
                     text: punctMatch[0],
-                    className: parentClassName || 'bible-punctuation',
+                    className: 'bible-punctuation',
                     font: '1000 16px SimSun'
                 });
                 i += punctMatch[0].length;
                 continue;
             }
 
-            // 兜底：普通文本（继承父级类名）
-            items.push({ 
-                text: char, 
-                className: parentClassName || '', 
-                font: '1000 16px SimSun' 
+            // 兜底：普通文本（继承父级类名 - 引号/括号内容本身）
+            items.push({
+                text: char,
+                className: parentClassName || '',
+                font: '1000 16px SimSun'
             });
             i++
         }

@@ -81,7 +81,8 @@ let copySettings = {
     bracketStyle: '【】',
     displayMode: 'verse',
     showGhostText: true,
-    enableSemanticColoring: true
+    enableSemanticColoring: true,
+    fontSize: 16
 };
 
 // 语义化着色配置（基于Monarch词法分析器）
@@ -800,9 +801,13 @@ async function displayVerse(bookName, chapter, startVerse, endVerse) {
             result.appendChild(verseElement);
         }
     }
-    
-    // 显示复制按钮
+
+    // 显示复制按钮和下载按钮
     copyBtn.style.display = 'block';
+    const downloadBtn = document.getElementById('download-btn');
+    if (downloadBtn) {
+        downloadBtn.style.display = 'inline-block';
+    }
 }
 
 // 处理空格输入
@@ -1100,6 +1105,109 @@ function copyVerse() {
     });
 }
 
+// 下载经文为图片
+async function downloadAsImage() {
+    if (!currentBook || !currentChapter) return;
+
+    const downloadBtn = document.getElementById('download-btn');
+    const originalText = downloadBtn.textContent;
+    downloadBtn.textContent = '生成中...';
+    downloadBtn.disabled = true;
+
+    try {
+        // 检查 html2canvas 是否可用
+        if (typeof html2canvas === 'undefined') {
+            throw new Error('html2canvas 库未加载');
+        }
+
+        // 创建截图区域（包含搜索栏和经文显示区域）
+        const captureArea = document.createElement('div');
+        captureArea.style.cssText = `
+            background: linear-gradient(to bottom, #FFFFFF, #FBF4E2);
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 800px;
+            font-family: 'SimSun', '宋体', serif;
+        `;
+
+        // 构建标题信息
+        const bookName = copySettings.shortBookName ? currentBook.short : currentBook.name;
+        let verseRange = '';
+        if (currentEndVerse === 'end') {
+            const chapterData = bibleData[currentBook.name][currentChapter];
+            verseRange = `:1-${Object.keys(chapterData).length}`;
+        } else if (!currentEndVerse || currentStartVerse === currentEndVerse) {
+            verseRange = `:${currentStartVerse}`;
+        } else {
+            verseRange = `:${currentStartVerse}-${currentEndVerse}`;
+        }
+
+        const titleDiv = document.createElement('div');
+        titleDiv.style.cssText = `
+            text-align: center;
+            color: #8B0000;
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            font-family: 'KaiTi', '楷体', serif;
+        `;
+        titleDiv.textContent = `${bookName} ${currentChapter}${verseRange}`;
+
+        // 克隆经文显示区域
+        const resultClone = document.getElementById('result').cloneNode(true);
+        resultClone.style.cssText = `
+            background: transparent;
+            padding: 0;
+        `;
+
+        captureArea.appendChild(titleDiv);
+        captureArea.appendChild(resultClone);
+
+        // 临时添加到页面以进行渲染
+        captureArea.style.position = 'absolute';
+        captureArea.style.left = '-9999px';
+        document.body.appendChild(captureArea);
+
+        // 使用 html2canvas 截图
+        const canvas = await html2canvas(captureArea, {
+            backgroundColor: '#FBF4E2',
+            scale: 2,
+            useCORS: true,
+            logging: false
+        });
+
+        // 移除临时元素
+        document.body.removeChild(captureArea);
+
+        // 创建下载链接
+        const link = document.createElement('a');
+        link.download = `${bookName}_${currentChapter}${verseRange}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+
+        // 显示成功提示
+        downloadBtn.textContent = '下载成功！';
+        downloadBtn.style.background = 'linear-gradient(135deg, #059669 0%, #10B981 100%)';
+
+        setTimeout(() => {
+            downloadBtn.textContent = originalText;
+            downloadBtn.style.background = '';
+            downloadBtn.disabled = false;
+        }, 2000);
+
+    } catch (error) {
+        console.error('下载失败:', error);
+        downloadBtn.textContent = '下载失败';
+        downloadBtn.style.background = 'linear-gradient(135deg, #DC2626 0%, #EF4444 100%)';
+
+        setTimeout(() => {
+            downloadBtn.textContent = originalText;
+            downloadBtn.style.background = '';
+            downloadBtn.disabled = false;
+        }, 2000);
+    }
+}
+
 // 初始化
 document.addEventListener('DOMContentLoaded', function() {
     input = document.getElementById('bible-input');
@@ -1156,6 +1264,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 复制按钮点击事件
     copyBtn.addEventListener('click', copyVerse);
+
+    // 下载图片按钮点击事件
+    const downloadBtn = document.getElementById('download-btn');
+    if (downloadBtn) {
+        downloadBtn.addEventListener('click', downloadAsImage);
+    }
     
     // 设置按钮点击事件
     settingBtn.addEventListener('click', function() {
@@ -1164,6 +1278,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('setting-display-mode').value = copySettings.displayMode;
         document.getElementById('setting-show-ghost-text').checked = copySettings.showGhostText;
         document.getElementById('setting-enable-semantic-coloring').checked = copySettings.enableSemanticColoring;
+        document.getElementById('setting-font-size').value = copySettings.fontSize || 16;
         document.getElementById('setting-with-verse-numbers').checked = copySettings.withVerseNumbers;
         document.getElementById('setting-each-verse-newline').checked = copySettings.eachVerseNewline;
         document.getElementById('setting-short-book-name').checked = copySettings.shortBookName;
@@ -1181,11 +1296,15 @@ document.addEventListener('DOMContentLoaded', function() {
         copySettings.displayMode = document.getElementById('setting-display-mode').value;
         copySettings.showGhostText = document.getElementById('setting-show-ghost-text').checked;
         copySettings.enableSemanticColoring = document.getElementById('setting-enable-semantic-coloring').checked;
+        copySettings.fontSize = parseInt(document.getElementById('setting-font-size').value) || 16;
         copySettings.withVerseNumbers = document.getElementById('setting-with-verse-numbers').checked;
         copySettings.eachVerseNewline = document.getElementById('setting-each-verse-newline').checked;
         copySettings.shortBookName = document.getElementById('setting-short-book-name').checked;
         copySettings.referencePosition = document.getElementById('setting-reference-position').value;
         copySettings.bracketStyle = document.getElementById('setting-bracket-style').value;
+
+        // 应用字号设置
+        applyFontSize(copySettings.fontSize);
 
         saveSettings();
         settingModal.style.display = 'none';
@@ -1220,4 +1339,23 @@ function loadSettings() {
             console.error('加载设置失败:', e);
         }
     }
+
+    // 应用字号设置
+    if (copySettings.fontSize) {
+        applyFontSize(copySettings.fontSize);
+    }
+}
+
+// 应用字号设置到经文显示区域
+function applyFontSize(size) {
+    const resultContainer = document.getElementById('result');
+    if (resultContainer) {
+        resultContainer.style.fontSize = size + 'px';
+    }
+
+    // 同时更新 .verse 的字号
+    const verses = document.querySelectorAll('.verse');
+    verses.forEach(verse => {
+        verse.style.fontSize = size + 'px';
+    });
 }

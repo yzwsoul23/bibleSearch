@@ -21,7 +21,10 @@
         </div>
         <div class="result-container">
             <div class="result" id="result"></div>
-            <button class="copy-btn" id="copy-btn" style="display: none">复制经文</button>
+            <div class="action-buttons">
+                <button class="copy-btn" id="copy-btn" style="display: none">复制经文</button>
+                <button class="download-btn" id="download-btn" style="display: none">下载图片</button>
+            </div>
         </div>
     </div>
     
@@ -51,6 +54,16 @@
                         <input type="checkbox" id="setting-enable-semantic-coloring" checked>
                         个性内容上色
                     </label>
+                </div>
+                <div class="setting-item">
+                    <label>经文字号：</label>
+                    <select id="setting-font-size">
+                        <option value="14">小 (14px)</option>
+                        <option value="16" selected>中 (16px)</option>
+                        <option value="18">大 (18px)</option>
+                        <option value="20">特大 (20px)</option>
+                        <option value="24">超大 (24px)</option>
+                    </select>
                 </div>
                 
                 <h3>复制文本设置</h3>
@@ -207,6 +220,7 @@
         </div>
     </div>
     
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="pretext-bible.js"></script>
     <script src="script.js"></script>
 </body>

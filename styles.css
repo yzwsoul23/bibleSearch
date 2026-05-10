@@ -295,6 +295,9 @@ input:focus {
     font-weight: 1000;
     border-left: 3px solid transparent;
     position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
 }
 
 .verse:hover {
@@ -303,11 +306,14 @@ input:focus {
 }
 
 .verse-number {
-    font-weight: bold;
+    font-weight: 900;
     margin-right: 8px;
     color: var(--chapter-red);
     font-size: 14px;
     font-family: 'Times New Roman', serif;
+    display: inline;
+    vertical-align: baseline;
+    flex-shrink: 0;
 }
 
 /* 整段显示模式 */
@@ -360,7 +366,7 @@ input:focus {
 
 /* 语义化着色样式（基于Monarch词法分析器） */
 .bible-quote {
-    color: #9C2542;
+    color: #1E40AF;
     font-weight: inherit;
 }
 
@@ -396,6 +402,8 @@ input:focus {
     font-size: 16px;
     font-weight: 1000;
     line-height: inherit;
+    flex: 1;
+    min-width: 0;
 }
 
 .pretext-container .bible-quote,
@@ -463,6 +471,47 @@ input:focus {
 }
 
 .copy-btn:active {
+    transform: translateY(0);
+}
+
+.action-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 25px;
+}
+
+.action-buttons .copy-btn,
+.action-buttons .download-btn {
+    margin: 0;
+    display: inline-block;
+}
+
+.download-btn {
+    padding: 12px 40px;
+    background: linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%);
+    color: var(--paper);
+    border: 2px solid var(--gold);
+    border-radius: 0;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 500;
+    font-family: 'SimHei', '黑体', sans-serif;
+    transition: all 0.3s ease;
+    box-shadow:
+        0 4px 12px rgba(30, 64, 175, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    letter-spacing: 3px;
+}
+
+.download-btn:hover {
+    background: linear-gradient(135deg, #2563EB 0%, #60A5FA 100%);
+    transform: translateY(-2px);
+    box-shadow:
+        0 6px 20px rgba(37, 99, 235, 0.5);
+}
+
+.download-btn:active {
     transform: translateY(0);
 }
 
