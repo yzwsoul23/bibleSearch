@@ -1120,45 +1120,83 @@ async function downloadAsImage() {
             throw new Error('html2canvas 库未加载');
         }
 
+        // 根据设备宽度自适应截图区域宽度和边距
+        const screenWidth = window.innerWidth;
+        let imageWidth, paddingY, paddingX;
+        if (screenWidth <= 480) {
+            imageWidth = Math.min(380, screenWidth - 40);
+            paddingY = 40;
+            paddingX = 25;
+        } else if (screenWidth <= 768) {
+            imageWidth = Math.min(600, screenWidth - 80);
+            paddingY = 50;
+            paddingX = 35;
+        } else {
+            imageWidth = Math.min(850, screenWidth - 160);
+            paddingY = 60;
+            paddingX = 55;
+        }
+
         // 创建截图区域（包含搜索栏和经文显示区域）
         const captureArea = document.createElement('div');
         captureArea.style.cssText = `
             background: linear-gradient(to bottom, #FFFFFF, #FBF4E2);
-            padding: 30px;
+            padding: ${paddingY}px ${paddingX}px;
             border-radius: 10px;
-            max-width: 800px;
+            width: ${imageWidth}px;
             font-family: 'SimSun', '宋体', serif;
         `;
 
-        // 构建标题信息
-        const bookName = copySettings.shortBookName ? currentBook.short : currentBook.name;
+        // 标题始终使用全名
+        const bookName = currentBook.name;
         let verseRange = '';
         if (currentEndVerse === 'end') {
             const chapterData = bibleData[currentBook.name][currentChapter];
-            verseRange = `:1-${Object.keys(chapterData).length}`;
+            verseRange = `章:1-${Object.keys(chapterData).length}节`;
         } else if (!currentEndVerse || currentStartVerse === currentEndVerse) {
-            verseRange = `:${currentStartVerse}`;
+            verseRange = `章:${currentStartVerse}节`;
         } else {
-            verseRange = `:${currentStartVerse}-${currentEndVerse}`;
+            verseRange = `章:${currentStartVerse}-${currentEndVerse}节`;
+        }
+
+        let titleFontSize;
+        if (screenWidth <= 480) {
+            titleFontSize = 20;
+        } else if (screenWidth <= 768) {
+            titleFontSize = 22;
+        } else {
+            titleFontSize = 24;
         }
 
         const titleDiv = document.createElement('div');
         titleDiv.style.cssText = `
             text-align: center;
             color: #8B0000;
-            font-size: 20px;
+            font-size: ${titleFontSize}px;
             font-weight: bold;
-            margin-bottom: 20px;
+            margin-bottom: ${Math.round(titleFontSize * 1.4)}px;
+            padding-bottom: ${Math.round(titleFontSize * 0.7)}px;
+            border-bottom: 2px solid rgba(139, 0, 0, 0.2);
             font-family: 'KaiTi', '楷体', serif;
+            letter-spacing: 2px;
+            line-height: 1.4;
         `;
-        titleDiv.textContent = `${bookName} ${currentChapter}${verseRange}`;
+        titleDiv.textContent = `${bookName}${currentChapter}${verseRange}`;
 
         // 克隆经文显示区域
         const resultClone = document.getElementById('result').cloneNode(true);
         resultClone.style.cssText = `
             background: transparent;
             padding: 0;
+            border: none;
+            box-shadow: none;
+            mix-blend-mode: normal;
         `;
+        // 移除透字效果的 ghost-text 元素
+        const ghostElements = resultClone.querySelectorAll('.ghost-text');
+        ghostElements.forEach(el => el.remove());
+        // 克隆内容边距
+        resultClone.style.padding = '10px 0';
 
         captureArea.appendChild(titleDiv);
         captureArea.appendChild(resultClone);

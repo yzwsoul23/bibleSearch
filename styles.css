@@ -314,6 +314,17 @@ input:focus {
     display: inline;
     vertical-align: baseline;
     flex-shrink: 0;
+    white-space: nowrap;
+}
+
+/* 防止节号在行末单独出现，确保与后续文字同行或在下行开头 */
+.verse-number::before {
+    content: '\00a0';
+    white-space: nowrap;
+}
+
+.verse:first-child .verse-number::before {
+    content: '';
 }
 
 /* 整段显示模式 */
