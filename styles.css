@@ -687,6 +687,33 @@ input:focus {
     color: var(--chapter-red);
 }
 
+.demo-gifs {
+    display: flex;
+    gap: 25px;
+    justify-content: center;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+}
+
+.demo-item {
+    text-align: center;
+    flex: 0 0 auto;
+}
+
+.demo-item p {
+    font-weight: 600;
+    margin-bottom: 12px;
+    font-size: 15px;
+    color: var(--chapter-red);
+}
+
+.demo-item img {
+    max-width: 300px;
+    width: 100%;
+    border: 2px solid rgba(156, 37, 66, 0.3);
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.12);
+}
+
 .book-list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
