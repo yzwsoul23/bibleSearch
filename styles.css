@@ -220,13 +220,36 @@ input:focus {
 }
 
 .suggestion-item {
-    padding: 12px 20px;
+    padding: 12px 25px;
     cursor: pointer;
     border-bottom: 1px solid rgba(156, 37, 66, 0.2);
     color: var(--text-brown);
     transition: all 0.2s;
     font-family: 'SimHei', '黑体', sans-serif;
     font-weight: 600;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.suggestion-name {
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.suggestion-spacer {
+    flex: 1;
+}
+
+.suggestion-code {
+    color: var(--magenta);
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    font-weight: 700;
+    background: rgba(156, 37, 66, 0.08);
+    padding: 3px 14px;
+    flex-shrink: 0;
 }
 
 .suggestion-item:last-child {
@@ -916,6 +939,15 @@ input:focus {
     .suggestion-item {
         padding: 12px 15px;
         font-size: 16px;
+        position: relative;
+    }
+    
+    .suggestion-name {
+        margin-right: 10px;
+    }
+    
+    .suggestion-code {
+        right: 15px;
     }
     
     .result-container {

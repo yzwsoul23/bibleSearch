@@ -640,7 +640,22 @@ function showSuggestions(matchedBooks) {
     matchedBooks.forEach(book => {
         const item = document.createElement('div');
         item.className = 'suggestion-item';
-        item.textContent = book.name;
+        
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'suggestion-name';
+        nameSpan.textContent = book.name;
+        
+        const spacer = document.createElement('span');
+        spacer.className = 'suggestion-spacer';
+        
+        const codeSpan = document.createElement('span');
+        codeSpan.className = 'suggestion-code';
+        codeSpan.textContent = book.pinyin;
+        
+        item.appendChild(nameSpan);
+        item.appendChild(spacer);
+        item.appendChild(codeSpan);
+        
         item.addEventListener('click', function() {
             selectBook(book);
         });
@@ -819,7 +834,7 @@ function handleSpaceInput(value) {
         if (inputState === 'book' && suggestions.style.display === 'block') {
             const firstSuggestion = suggestions.querySelector('.suggestion-item');
             if (firstSuggestion) {
-                const bookName = firstSuggestion.textContent;
+                const bookName = firstSuggestion.querySelector('.suggestion-name').textContent;
                 currentBook = books.find(b => b.name === bookName);
                 selectBook(currentBook);
                 return true;
