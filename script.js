@@ -941,7 +941,10 @@ function handleInput(e) {
     }
 
     const matchedBooks = books.filter(book => {
-        return book.pinyin.toUpperCase().startsWith(upperValue) || book.fullPinyin.toUpperCase().startsWith(upperValue);
+        return book.pinyin.toUpperCase().startsWith(upperValue) || 
+               book.fullPinyin.toUpperCase().startsWith(upperValue) ||
+               book.name.startsWith(value) ||
+               book.short.startsWith(value);
     });
 
     if (matchedBooks.length > 0 && inputState === 'book') {
