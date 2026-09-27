@@ -28,6 +28,19 @@
         </div>
     </div>
     
+    <!-- 右侧字母轴 + 书卷章节选择面板 -->
+    <div class="alpha-sidebar" id="alpha-sidebar">
+        <div class="alpha-bar" id="alpha-bar"></div>
+    </div>
+    
+    <div class="picker-panel" id="picker-panel">
+        <div class="picker-header">
+            <span id="picker-current-letter">A</span>
+            <button class="picker-close" id="picker-close">&times;</button>
+        </div>
+        <div class="picker-body" id="picker-body"></div>
+    </div>
+    
     <div class="modal" id="setting-modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -53,6 +66,18 @@
                     <label>
                         <input type="checkbox" id="setting-enable-semantic-coloring" checked>
                         个性内容上色
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <label>
+                        <input type="checkbox" id="setting-enable-name-underline" checked>
+                        地名人名下划线标注
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <label>
+                        <input type="checkbox" id="setting-show-section-titles" checked>
+                        段落小标题
                     </label>
                 </div>
                 <div class="setting-item">
@@ -233,6 +258,7 @@
     </div>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="bible_names.js"></script>
     <script src="pretext-bible.js"></script>
     <script src="script.js"></script>
 </body>

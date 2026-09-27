@@ -5,6 +5,7 @@
 // 1. Intl.Segmenter CJK 分词 (中文经文完美断行)
 // 2. Canvas 文本测量 (零 DOM reflow)
 // 3. Rich-Inline 富文本流 (语义化着色精确布局)
+// 4. 专有名词（人名/地名）下划线标注
 
 const PretextBible = (() => {
     const canvas = document.createElement('canvas');
@@ -13,6 +14,34 @@ const PretextBible = (() => {
     let sharedWordSegmenter = null;
     let sharedGraphemeSegmenter = null;
     let measurementCache = new Map();
+
+    // 专有名词集合（从 bible_names.js 加载）
+    let bibleNameSet = null;
+    let bibleNameMaxLen = 0;
+
+    function initBibleNames() {
+        if (bibleNameSet) return;
+        if (typeof BIBLE_NAMES !== 'undefined' && Array.isArray(BIBLE_NAMES)) {
+            bibleNameSet = new Set(BIBLE_NAMES);
+            bibleNameMaxLen = BIBLE_NAMES.reduce((max, n) => Math.max(max, n.length), 0);
+        } else {
+            bibleNameSet = new Set();
+        }
+    }
+
+    function matchBibleName(text, pos) {
+        initBibleNames();
+        if (bibleNameSet.size === 0) return null;
+        // 从长到短尝试匹配，优先匹配最长的专有名词
+        for (let len = bibleNameMaxLen; len >= 2; len--) {
+            if (pos + len > text.length) continue;
+            const candidate = text.substring(pos, pos + len);
+            if (bibleNameSet.has(candidate)) {
+                return candidate;
+            }
+        }
+        return null;
+    }
 
     // 语义化着色配置（内联定义，避免跨文件依赖）
     const SemanticColoringConfig = {
@@ -207,7 +236,7 @@ const PretextBible = (() => {
         container.appendChild(fragment);
     }
 
-    function parseToRichInlineItems(text, colorConfig, parentClassName = '') {
+    function parseToRichInlineItems(text, colorConfig, parentClassName = '', enableNameUnderline = false) {
         const items = [];
         let i = 0;
         const len = text.length;
@@ -231,7 +260,7 @@ const PretextBible = (() => {
                         items.push({ text: openQuote, className: config.quotes.className, font: '1000 16px SimSun' });
 
                         // 递归处理内部内容，传递引号的颜色作为父级
-                        const innerItems = parseToRichInlineItems(innerContent, config, config.quotes.className);
+                        const innerItems = parseToRichInlineItems(innerContent, config, config.quotes.className, enableNameUnderline);
                         items.push(...innerItems);
 
                         items.push({ text: closeQuote, className: config.quotes.className, font: '1000 16px SimSun' });
@@ -259,7 +288,7 @@ const PretextBible = (() => {
 
                         // 递归处理内部内容，传递括号的颜色作为父级
                         // 这样括号内的普通文本会继承括号颜色，但嵌套的符号会用自身颜色
-                        const innerItems = parseToRichInlineItems(innerContent, config, config.brackets.className);
+                        const innerItems = parseToRichInlineItems(innerContent, config, config.brackets.className, enableNameUnderline);
                         items.push(...innerItems);
 
                         items.push({ text: bracket.close, className: config.brackets.className, font: '1000 16px SimSun' });
@@ -317,6 +346,20 @@ const PretextBible = (() => {
                 continue;
             }
 
+            // 检测专有名词（人名/地名）- 下划线标注（保留父级颜色）
+            if (enableNameUnderline) {
+                const name = matchBibleName(text, i);
+                if (name) {
+                    items.push({
+                        text: name,
+                        className: parentClassName ? parentClassName + ' bible-name' : 'bible-name',
+                        font: '1000 16px SimSun'
+                    });
+                    i += name.length;
+                    continue;
+                }
+            }
+
             // 兜底：普通文本（继承父级类名 - 引号/括号内容本身）
             items.push({
                 text: char,
@@ -329,7 +372,7 @@ const PretextBible = (() => {
         return items;
     }
 
-    function colorizeWithPretext(text, enableColoring = true) {
+    function colorizeWithPretext(text, enableColoring = true, enableNameUnderline = false) {
         console.log('[Pretext] colorizeWithPretext called:', { text: text.substring(0, 50), enableColoring });
 
         if (!enableColoring) {
@@ -337,7 +380,7 @@ const PretextBible = (() => {
             return text;
         }
 
-        const items = parseToRichInlineItems(text, SemanticColoringConfig);
+        const items = parseToRichInlineItems(text, SemanticColoringConfig, '', enableNameUnderline);
         console.log('[Pretext] Parsed items count:', items.length);
         console.log('[Pretext] Sample items:', items.slice(0, 5));
 
@@ -367,7 +410,7 @@ const PretextBible = (() => {
     // 使用 Unicode 私有区字符作为边界标记（单字符，不会被拆散）
     const VERSE_BOUNDARY = '\uE000';  // Unicode Private Use Area
 
-    function colorizeVersesWithPretext(verseTexts, enableColoring = true) {
+    function colorizeVersesWithPretext(verseTexts, enableColoring = true, enableNameUnderline = false) {
         if (!enableColoring || !verseTexts || verseTexts.length === 0) {
             return verseTexts.map(text => document.createTextNode(text || ''));
         }
@@ -376,7 +419,7 @@ const PretextBible = (() => {
         const mergedText = verseTexts.join(VERSE_BOUNDARY);
 
         // 对完整文本进行全局词法分析（跨节配对）
-        const allItems = parseToRichInlineItems(mergedText, SemanticColoringConfig);
+        const allItems = parseToRichInlineItems(mergedText, SemanticColoringConfig, '', enableNameUnderline);
 
         // 按边界标记拆分为各个 verse 的 DOM 片段
         const results = [];

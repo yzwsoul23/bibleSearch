@@ -71,6 +71,7 @@ const books = [
 // 经文数据
 let bibleData = {};
 let loadedBooks = {};
+let sectionHeadingsData = null;  // 段落标题数据
 
 // 复制设置
 let copySettings = {
@@ -82,6 +83,8 @@ let copySettings = {
     displayMode: 'verse',
     showGhostText: true,
     enableSemanticColoring: true,
+    enableNameUnderline: true,
+    showSectionTitles: true,
     fontSize: 16
 };
 
@@ -394,7 +397,7 @@ function colorizeWithPretextEngine(text) {
     }
 
     try {
-        const domNode = PretextBible.colorizeWithPretext(text, true);
+        const domNode = PretextBible.colorizeWithPretext(text, true, copySettings.enableNameUnderline);
         if (domNode && domNode.nodeType === 1) {
             return domNode;
         }
@@ -429,7 +432,7 @@ function renderVerseWithPretext(verseElement, verseNumber, text, isParagraphMode
 
             if (copySettings.enableSemanticColoring) {
                 console.log('[Script] Calling PretextBible.colorizeWithPretext...');
-                const coloredContent = PretextBible.colorizeWithPretext(text, true);
+                const coloredContent = PretextBible.colorizeWithPretext(text, true, copySettings.enableNameUnderline);
                 console.log('[Script] Returned content type:', typeof coloredContent, 'nodeType:', coloredContent?.nodeType);
                 
                 if (coloredContent && coloredContent.nodeType === 1) {
@@ -451,7 +454,7 @@ function renderVerseWithPretext(verseElement, verseNumber, text, isParagraphMode
 
             if (copySettings.enableSemanticColoring) {
                 console.log('[Script] Calling PretextBible.colorizeWithPretext...');
-                const coloredContent = PretextBible.colorizeWithPretext(text, true);
+                const coloredContent = PretextBible.colorizeWithPretext(text, true, copySettings.enableNameUnderline);
                 console.log('[Script] Returned content type:', typeof coloredContent, 'nodeType:', coloredContent?.nodeType);
                 
                 if (coloredContent && coloredContent.nodeType === 1) {
@@ -634,6 +637,34 @@ async function loadBook(bookName) {
     return false;
 }
 
+// 加载段落小标题数据
+async function loadSectionHeadings() {
+    if (sectionHeadingsData !== null) {
+        return sectionHeadingsData;
+    }
+    try {
+        const response = await fetch('section_headings.json');
+        if (response.ok) {
+            const data = await response.json();
+            sectionHeadingsData = data.books || {};
+            console.log(`已加载段落标题数据，共 ${Object.keys(sectionHeadingsData).length} 卷`);
+        } else {
+            sectionHeadingsData = {};
+        }
+    } catch (error) {
+        console.warn('加载段落标题失败（可能文件不存在）:', error.message);
+        sectionHeadingsData = {};
+    }
+    return sectionHeadingsData;
+}
+
+// 获取某卷某章的段落标题
+function getChapterHeadings(bookName, chapter) {
+    if (!sectionHeadingsData || !sectionHeadingsData[bookName]) return [];
+    const chKey = String(chapter);
+    return sectionHeadingsData[bookName][chKey] || [];
+}
+
 // 显示建议列表
 function showSuggestions(matchedBooks) {
     suggestions.innerHTML = '';
@@ -694,6 +725,23 @@ async function displayVerse(bookName, chapter, startVerse, endVerse) {
     result.innerHTML = '';
     const chapterData = bibleData[bookName][chapter];
     
+    // 加载段落标题数据
+    if (copySettings.showSectionTitles) {
+        await loadSectionHeadings();
+    }
+    const chapterHeadings = getChapterHeadings(bookName, chapter);
+    const headingVerseMap = {};  // verse -> title
+    // BibleGateway CUVMPS 只有 verse 1 缺 versenum 标签，后面 verse 全对
+    // 所以：如果第一个标题 verse=2，那它就是 verse 1 的标题，只减这一个
+    const sortedHeadings = [...chapterHeadings].sort((a, b) => a[0] - b[0]);
+    sortedHeadings.forEach(([v, t], idx) => {
+        if (idx === 0 && v === 2) {
+            headingVerseMap[1] = t;
+        } else {
+            headingVerseMap[v] = t;
+        }
+    });
+    
     // 根据显示模式处理
     if (copySettings.displayMode === 'paragraph') {
         // 整段显示模式
@@ -724,11 +772,20 @@ async function displayVerse(bookName, chapter, startVerse, endVerse) {
         
         // 调用 Pretext 的跨节联合着色函数
         const coloredFragments = typeof PretextBible !== 'undefined' && copySettings.enableSemanticColoring
-            ? PretextBible.colorizeVersesWithPretext(verseTexts, true)
+            ? PretextBible.colorizeVersesWithPretext(verseTexts, true, copySettings.enableNameUnderline)
             : null;
 
         for (let idx = 0; idx < verseNumbers.length; idx++) {
             const i = verseNumbers[idx];
+
+            // 插入段落小标题
+            if (copySettings.showSectionTitles && headingVerseMap[i]) {
+                const titleDiv = document.createElement('div');
+                titleDiv.className = 'section-title';
+                titleDiv.textContent = headingVerseMap[i];
+                result.appendChild(titleDiv);
+            }
+
             const verseElement = document.createElement('span');
             verseElement.className = 'verse';
 
@@ -792,11 +849,20 @@ async function displayVerse(bookName, chapter, startVerse, endVerse) {
 
         // 使用跨节联合 Pretext 引擎渲染经文
         const coloredFragments = typeof PretextBible !== 'undefined' && copySettings.enableSemanticColoring
-            ? PretextBible.colorizeVersesWithPretext(verseTexts, true)
+            ? PretextBible.colorizeVersesWithPretext(verseTexts, true, copySettings.enableNameUnderline)
             : null;
 
         for (let idx = 0; idx < verseNumbers.length; idx++) {
             const i = verseNumbers[idx];
+
+            // 插入段落小标题
+            if (copySettings.showSectionTitles && headingVerseMap[i]) {
+                const titleDiv = document.createElement('div');
+                titleDiv.className = 'section-title';
+                titleDiv.textContent = headingVerseMap[i];
+                result.appendChild(titleDiv);
+            }
+
             const verseElement = document.createElement('div');
             verseElement.className = 'verse';
 
@@ -823,6 +889,12 @@ async function displayVerse(bookName, chapter, startVerse, endVerse) {
     if (downloadBtn) {
         downloadBtn.style.display = 'inline-block';
     }
+    
+    // 更新全局状态（用于滑动切换章节）
+    currentBook = books.find(b => b.name === bookName);
+    currentChapter = chapter;
+    currentStartVerse = startVerse;
+    currentEndVerse = endVerse;
 }
 
 // 处理空格输入
@@ -1264,6 +1336,245 @@ async function downloadAsImage() {
     }
 }
 
+// ============================================================
+// 右侧字母轴 + 书卷章节选择
+// ============================================================
+
+// 每卷章节数
+const BOOK_CHAPTER_COUNTS = {
+    "创世纪": 50, "出埃及记": 40, "利未记": 27, "民数记": 36, "申命记": 34,
+    "约书亚记": 24, "士师记": 21, "路得记": 4, "撒母耳记上": 31, "撒母耳记下": 24,
+    "列王纪上": 22, "列王纪下": 25, "历代志上": 29, "历代志下": 36,
+    "以斯拉记": 10, "尼希米记": 13, "以斯帖记": 10, "约伯记": 42, "诗篇": 150,
+    "箴言": 31, "传道书": 12, "雅歌": 8, "以赛亚书": 66, "耶利米书": 52,
+    "耶利米哀歌": 5, "以西结书": 48, "但以理书": 12, "何西阿书": 14, "约珥书": 3,
+    "阿摩司书": 9, "俄巴底亚书": 1, "约拿书": 4, "弥迦书": 7, "那鸿书": 3,
+    "哈巴谷书": 3, "西番雅书": 3, "哈该书": 2, "撒迦利亚书": 14, "玛拉基书": 4,
+    "马太福音": 28, "马可福音": 16, "路加福音": 24, "约翰福音": 21, "使徒行传": 28,
+    "罗马书": 16, "哥林多前书": 16, "哥林多后书": 13, "加拉太书": 6, "以弗所书": 6,
+    "腓立比书": 4, "歌罗西书": 4, "帖撒罗尼迦前书": 5, "帖撒罗尼迦后书": 3,
+    "提摩太前书": 6, "提摩太后书": 4, "提多书": 3, "腓利门书": 1, "希伯来书": 13,
+    "雅各书": 5, "彼得前书": 5, "彼得后书": 3, "约翰一书": 5, "约翰二书": 1,
+    "约翰三书": 1, "犹大书": 1, "启示录": 22,
+};
+
+// 构建拼音首字母 → 书卷列表的映射
+const LETTER_TO_BOOKS = {};
+books.forEach(book => {
+    const firstLetter = (book.fullPinyin || book.pinyin || '').charAt(0).toUpperCase();
+    if (!firstLetter) return;
+    if (!LETTER_TO_BOOKS[firstLetter]) LETTER_TO_BOOKS[firstLetter] = [];
+    LETTER_TO_BOOKS[firstLetter].push(book);
+});
+
+const ALL_LETTERS = Object.keys(LETTER_TO_BOOKS).sort();
+
+// 渲染字母轴（只显示有书卷的字母）
+function initAlphaSidebar() {
+    const bar = document.getElementById('alpha-bar');
+    if (!bar) return;
+    bar.innerHTML = '';
+    ALL_LETTERS.forEach(letter => {
+        const div = document.createElement('div');
+        div.className = 'alpha-item has-books';
+        div.textContent = letter;
+        div.dataset.letter = letter;
+        div.addEventListener('click', () => openPicker(letter));
+        bar.appendChild(div);
+    });
+    
+    // 触摸滑动快速定位
+    const sidebar = document.getElementById('alpha-sidebar');
+    
+    function handleTouch(e) {
+        const point = e.touches ? e.touches[0] : e;
+        const rect = bar.getBoundingClientRect();
+        const relativeY = point.clientY - rect.top;
+        const items = bar.querySelectorAll('.alpha-item');
+        const totalHeight = rect.height;
+        const letterIndex = Math.floor((relativeY / totalHeight) * ALL_LETTERS.length);
+        const letter = ALL_LETTERS[Math.max(0, Math.min(ALL_LETTERS.length - 1, letterIndex))];
+        items.forEach(i => i.classList.toggle('active', i.dataset.letter === letter));
+        openPicker(letter, true);
+    }
+    
+    sidebar.addEventListener('touchstart', handleTouch, { passive: true });
+    sidebar.addEventListener('touchmove', handleTouch, { passive: true });
+    sidebar.addEventListener('mousemove', (e) => {
+        if (e.buttons === 1) handleTouch(e);
+    });
+}
+
+// 打开面板 — 显示某字母下的书卷列表
+let pickerState = { letter: null, view: 'books', currentBook: null };
+
+function openPicker(letter, fromTouch) {
+    const panel = document.getElementById('picker-panel');
+    const header = document.getElementById('picker-current-letter');
+    const body = document.getElementById('picker-body');
+    
+    pickerState = { letter, view: 'books', currentBook: null };
+    header.textContent = letter;
+    
+    const list = LETTER_TO_BOOKS[letter] || [];
+    body.innerHTML = '';
+    
+    const booksDiv = document.createElement('div');
+    booksDiv.className = 'picker-books';
+    list.forEach(book => {
+        const item = document.createElement('div');
+        item.className = 'picker-book-item';
+        item.innerHTML = `<span>${book.name}</span><span class="book-chapter-count">${BOOK_CHAPTER_COUNTS[book.name] || '?'}章</span>`;
+        item.addEventListener('click', (e) => { e.stopPropagation(); showChapters(book); });
+        item.addEventListener('touchend', (e) => { e.preventDefault(); e.stopPropagation(); showChapters(book); });
+        booksDiv.appendChild(item);
+    });
+    body.appendChild(booksDiv);
+    
+    panel.classList.add('visible');
+}
+
+// 显示章节网格 + 拖动选择 + 预加载经卷数据
+function showChapters(book) {
+    const panel = document.getElementById('picker-panel');
+    const header = document.getElementById('picker-current-letter');
+    const body = document.getElementById('picker-body');
+    
+    pickerState.view = 'chapters';
+    pickerState.currentBook = book;
+    header.textContent = book.name;
+    panel.classList.add('visible');  // 双保险：确保面板保持打开
+    
+    // 预加载经卷数据（异步不阻塞 UI）
+    loadBook(book.name);
+    loadSectionHeadings();
+    
+    body.innerHTML = '';
+    
+    // 返回按钮
+    const back = document.createElement('div');
+    back.className = 'picker-back';
+    back.textContent = '← 返回书卷列表';
+    back.addEventListener('click', () => openPicker(pickerState.letter));
+    body.appendChild(back);
+    
+    // 当前选中章节高亮（拖动时实时预览）
+    const hint = document.createElement('div');
+    hint.className = 'picker-hint';
+    hint.style.cssText = 'text-align:center;padding:6px;font-size:12px;color:#9C2542;opacity:0;transition:opacity 0.15s';
+    body.appendChild(hint);
+    
+    // 章节网格
+    const count = BOOK_CHAPTER_COUNTS[book.name] || 1;
+    const grid = document.createElement('div');
+    grid.className = 'picker-chapters';
+    const chapterBtns = [];
+    
+    for (let c = 1; c <= count; c++) {
+        const btn = document.createElement('div');
+        btn.className = 'picker-chapter-item';
+        btn.textContent = c;
+        btn.dataset.chapter = c;
+        grid.appendChild(btn);
+        chapterBtns.push(btn);
+    }
+    body.appendChild(grid);
+    
+    // ============ 拖动选择逻辑 ============
+    let isDragging = false;
+    let selectedChapter = null;
+    
+    function findChapterAtPoint(x, y) {
+        for (const btn of chapterBtns) {
+            const r = btn.getBoundingClientRect();
+            if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) {
+                return btn;
+            }
+        }
+        return null;
+    }
+    
+    function highlight(btn) {
+        chapterBtns.forEach(b => b.classList.remove('active'));
+        if (btn) {
+            btn.classList.add('active');
+            selectedChapter = parseInt(btn.dataset.chapter);
+            hint.textContent = `选择第 ${selectedChapter} 章`;
+            hint.style.opacity = '1';
+        }
+    }
+    
+    function startDrag(x, y) {
+        isDragging = true;
+        const btn = findChapterAtPoint(x, y);
+        highlight(btn);
+    }
+    
+    function onDrag(x, y) {
+        if (!isDragging) return;
+        const btn = findChapterAtPoint(x, y);
+        if (btn && !btn.classList.contains('active')) {
+            highlight(btn);
+        }
+    }
+    
+    function endDrag() {
+        if (!isDragging) return;
+        isDragging = false;
+        if (selectedChapter !== null) {
+            const ch = selectedChapter;
+            closePicker();
+            setTimeout(() => displayVerse(book.name, ch, 1, 'end'), 150);
+        }
+        selectedChapter = null;
+        hint.style.opacity = '0';
+    }
+    
+    // 绑定事件
+    grid.addEventListener('touchstart', (e) => {
+        const t = e.touches[0];
+        startDrag(t.clientX, t.clientY);
+    }, { passive: true });
+    
+    grid.addEventListener('touchmove', (e) => {
+        const t = e.touches[0];
+        onDrag(t.clientX, t.clientY);
+    }, { passive: true });
+    
+    grid.addEventListener('touchend', endDrag);
+    
+    grid.addEventListener('mousedown', (e) => {
+        startDrag(e.clientX, e.clientY);
+    });
+    
+    grid.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        onDrag(e.clientX, e.clientY);
+    });
+    
+    window.addEventListener('mouseup', endDrag);
+    window.addEventListener('touchend', endDrag);
+    // 全局 touchend 防止手指滑出 grid 后丢失事件
+}
+
+function closePicker() {
+    document.getElementById('picker-panel').classList.remove('visible');
+    document.querySelectorAll('.alpha-item.active').forEach(el => el.classList.remove('active'));
+}
+
+// 绑定关闭按钮
+document.addEventListener('click', (e) => {
+    if (e.target.id === 'picker-close' || 
+        (e.target.closest('.picker-panel') === null && 
+         e.target.closest('.alpha-sidebar') === null &&
+         document.getElementById('picker-panel').classList.contains('visible'))) {
+        closePicker();
+    }
+});
+
+// 初始化字母轴
+initAlphaSidebar();
+
 // 初始化
 document.addEventListener('DOMContentLoaded', function() {
     input = document.getElementById('bible-input');
@@ -1282,6 +1593,59 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 加载保存的设置
     loadSettings();
+    
+    // === 滑动切换章节 ===
+    let swipeStartX = 0, swipeStartY = 0, swipeActive = false;
+    const SWIPE_THRESHOLD = 50;  // px
+    
+    result.addEventListener('touchstart', (e) => {
+        swipeStartX = e.touches[0].clientX;
+        swipeStartY = e.touches[0].clientY;
+        swipeActive = true;
+    }, { passive: true });
+    
+    result.addEventListener('touchend', (e) => {
+        if (!swipeActive) return;
+        swipeActive = false;
+        const dx = e.changedTouches[0].clientX - swipeStartX;
+        const dy = e.changedTouches[0].clientY - swipeStartY;
+        
+        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > SWIPE_THRESHOLD) {
+            navigateChapter(dx < 0 ? +1 : -1);  // 左滑=下一章，右滑=上一章
+        }
+    }, { passive: true });
+    
+    // 桌面端键盘左右箭头
+    document.addEventListener('keydown', (e) => {
+        if (document.activeElement === input) return;  // 输入框里不触发
+        if (!currentBook || !currentChapter) return;
+        if (e.key === 'ArrowLeft')  { e.preventDefault(); navigateChapter(-1); }
+        if (e.key === 'ArrowRight') { e.preventDefault(); navigateChapter(+1); }
+    });
+    
+    // 切换上/下一章（仅当前书卷内）
+    async function navigateChapter(delta) {
+        if (!currentBook || !currentChapter) return;
+        
+        // 章节数从 bibleData 取（books 数组本身没有 chapters 属性）
+        await loadBook(currentBook.name);
+        const chapterKeys = bibleData[currentBook.name] ? Object.keys(bibleData[currentBook.name]) : [];
+        const maxChapter = chapterKeys.length;
+        if (maxChapter === 0) return;
+        
+        const newChapter = currentChapter + delta;
+        if (newChapter < 1 || newChapter > maxChapter) return;  // 到边界就不动
+        
+        // 更新输入框显示
+        input.value = currentBook.name + newChapter + 'z';
+        inputState = 'endVerse';
+        
+        displayVerse(currentBook.name, newChapter, 1, 'end');
+        
+        // 滚动到顶部
+        result.scrollTop = 0;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
     
     input.addEventListener('input', handleInput);
     input.addEventListener('keydown', handleKeydown);
@@ -1334,6 +1698,8 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('setting-display-mode').value = copySettings.displayMode;
         document.getElementById('setting-show-ghost-text').checked = copySettings.showGhostText;
         document.getElementById('setting-enable-semantic-coloring').checked = copySettings.enableSemanticColoring;
+        document.getElementById('setting-enable-name-underline').checked = copySettings.enableNameUnderline;
+        document.getElementById('setting-show-section-titles').checked = copySettings.showSectionTitles;
         document.getElementById('setting-font-size').value = copySettings.fontSize || 16;
         document.getElementById('setting-with-verse-numbers').checked = copySettings.withVerseNumbers;
         document.getElementById('setting-each-verse-newline').checked = copySettings.eachVerseNewline;
@@ -1352,6 +1718,8 @@ document.addEventListener('DOMContentLoaded', function() {
         copySettings.displayMode = document.getElementById('setting-display-mode').value;
         copySettings.showGhostText = document.getElementById('setting-show-ghost-text').checked;
         copySettings.enableSemanticColoring = document.getElementById('setting-enable-semantic-coloring').checked;
+        copySettings.enableNameUnderline = document.getElementById('setting-enable-name-underline').checked;
+        copySettings.showSectionTitles = document.getElementById('setting-show-section-titles').checked;
         copySettings.fontSize = parseInt(document.getElementById('setting-font-size').value) || 16;
         copySettings.withVerseNumbers = document.getElementById('setting-with-verse-numbers').checked;
         copySettings.eachVerseNewline = document.getElementById('setting-each-verse-newline').checked;
